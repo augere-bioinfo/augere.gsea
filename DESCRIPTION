@@ -1,0 +1,29 @@
+Package: augere.gsea
+Version: 0.99.0
+Date: 2025-11-12
+Title: Automatic Generation of Gene Set Enrichment Analyses
+Description:
+    Implements pipelines for generating gene set enrichment analysis reports in the augere framework.
+    This includes various competitive and self-contained gene sets from a variety of Bioconductor packages.
+Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.with.keyboards@gmail.com")
+License: MIT + file LICENSE
+Imports:
+    utils,
+    stats,
+    methods,
+    limma,
+    S4Vectors,
+    augere.core
+Suggests:
+    testthat,
+    knitr,
+    rmarkdown,
+    BiocStyle,
+    airway,
+    goseq,
+    fgsea,
+    SummarizedExperiment,
+    jsonlite
+VignetteBuilder: knitr    
+RoxygenNote: 7.3.3
+Encoding: UTF-8
