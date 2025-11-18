@@ -65,14 +65,14 @@ generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, 
         )
 
         m <- match(set.names, raw$category)
-        out <- DataFrame(
+        out <- S4Vectors::DataFrame(
             row.names=names(sets),
             NumGenes=sizes,
             NumSig=raw$numDEInCat[m],
-            PValue=raw$over_represented_pvalue[m],
-            FDR=p.adjust(out$PValue, method=\"BH\")
+            PValue=raw$over_represented_pvalue[m]
         )
         out$NumSig[!keep] <- 0L
+        out$FDR <- p.adjust(out$PValue, method=\"BH\")
         out 
     }
 
@@ -87,7 +87,7 @@ generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, 
 :END
 :BEGIN either
     up.stats <- run_goseq(is.sig & sign > 0)
-    up.stats <- run_goseq(is.sig & sign < 0)
+    down.stats <- run_goseq(is.sig & sign < 0)
     up.stats$NumSig <- up.stats$NumSig + down.stats$NumSig
     direction <- up.stats$PValue < down.stats$PValue
     up.stats$PValue <- 2 * pmin(up.stats$PValue, down.stats$PValue)
@@ -100,7 +100,7 @@ generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, 
     parsed <- parseRmdTemplate(template)
 
     alternative <- match.arg(alternative)
-    if (alternative != "mixed" && is.null(sign)) {
+    if (alternative != "mixed" && is.null(sign.name)) {
         stop("'sign' should be supplied when 'alternative=\"", alternative, "\"")
     }
 

@@ -37,7 +37,7 @@ generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c
     sign <- <%= SIGN %>
 :END
 
-    gene.names <- as.character(seq_along(rank.stat))
+    gene.names <- as.character(seq_along(stat))
     named.sets <- relist(gene.names[unlist(sets)], sets)
     names(stat) <- gene.names
     set.names <- as.character(seq_along(named.sets))
@@ -64,7 +64,7 @@ generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c
 :END
     )
 
-    out <- DataFrame(
+    out <- S4Vectors::DataFrame(
          row.names=raw$pathway,
          ES=raw$ES, 
          NES=raw$NES, 
@@ -73,7 +73,7 @@ generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c
     )
 
     out <- out[match(set.names, rownames(out)),,drop=FALSE]
-    out <- cbind(DataFrame(NumGenes=sizes), out)
+    out <- cbind(S4Vectors::DataFrame(NumGenes=sizes), out)
     rownames(out) <- names(sets)
 :BEGIN direction
     out$Direction <- ifelse(out$NES > 0, \"up\", \"down\")
@@ -89,16 +89,16 @@ generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c
     if (alternative == "mixed") {
         # FYI check out fgsea:::preparePathwaysAndStats where they just take
         # the absolute value for the calculations.
-        replacements$SCORE_TYPE <- "pos"
+        replacements$SCORE_TYPE <- "\"pos\""
         parsed[["sign-setup"]] <- NULL
         parsed[["re-sign"]] <- NULL
         parsed[["direction"]] <- NULL
 
     } else {
-        replacements$SCORE_TYPE <- switch(alternative, up = "pos", down = "neg", either = "std")
+        replacements$SCORE_TYPE <- deparseToString(switch(alternative, up = "pos", down = "neg", either = "std"))
         parsed[["de-sign"]] <- NULL
 
-        if (is.null(sign)) {
+        if (is.null(sign.name)) {
             parsed[["re-sign"]] <- NULL
             parsed[["sign-setup"]] <- NULL
         } else {

@@ -8,7 +8,7 @@
 #' The referenced vector should be of length equal to the number of genes.
 #' @param sign.name String containing the variable name for the numeric vector of signed effect sizes (typically log-fold changes) for each gene.
 #' The referenced vector should be of length equal to the number of genes.
-#' It can be omitted for \code{alternative="mixed"}.
+#' It can be \code{NULL} for \code{alternative="mixed"}.
 #' @param alternative String specifying the alternative hypothesis.
 #' This should be one of:
 #' \itemize{
@@ -56,9 +56,9 @@ generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name
         # Make sure to include the probability mass of the observed count in the p-value.
         args <- list(m=num.sig, n=num.universe - num.sig, k=num.set)
         pval <- do.call(phyper, c(args, list(q=num.set.sig, lower.tail=FALSE))) + do.call(dhyper, c(args, list(x=num.set.sig)))
-        pval[num.set.sig == 0L] <- NA # make sure empty sets do not affect the FDR correction.
+        pval[num.set == 0L] <- NA # make sure empty sets do not affect the FDR correction.
 
-        out <- S4Vectors::DataFrame(row.names=names(sets), NumGenes=num.set.sig, NumSig=set.sig, PValue=pval)
+        out <- S4Vectors::DataFrame(row.names=names(sets), NumGenes=num.set, NumSig=num.set.sig, PValue=pval)
         out$FDR <- p.adjust(out$PValue, method='BH')
         out
     }
@@ -70,10 +70,10 @@ generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name
 :END
 
 :BEGIN up
-    run_hypergeometric_test(sets, is.sig & sign > 0))
+    run_hypergeometric_test(sets, is.sig & sign > 0)
 :END
 :BEGIN down 
-    run_hypergeometric_test(sets, is.sig & sign < 0))
+    run_hypergeometric_test(sets, is.sig & sign < 0)
 :END
 :BEGIN mixed
     run_hypergeometric_test(sets, is.sig)
@@ -93,7 +93,7 @@ generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name
     parsed <- parseRmdTemplate(template)
 
     alternative <- match.arg(alternative)
-    if (alternative != "mixed" && is.null(sign)) {
+    if (alternative != "mixed" && is.null(sign.name)) {
         stop("'sign' should be supplied when 'alternative=\"", alternative, "\"")
     }
 

@@ -22,7 +22,7 @@ The referenced vector should be of length equal to the number of genes.}
 
 \item{sign.name}{String containing the variable name for the numeric vector of signed effect sizes (typically log-fold changes) for each gene.
 The referenced vector should be of length equal to the number of genes.
-It can be omitted for \code{alternative="mixed"}.}
+It can be \code{NULL} for \code{alternative="mixed"}.}
 
 \item{bias.name}{String containing the variable name for the numeric vector of biases (typically lengths or abundances) for each gene.
 The referenced vector should be of length equal to the number of genes.}

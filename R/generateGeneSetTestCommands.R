@@ -7,8 +7,7 @@
 #' The referenced vector should be of length equal to the number of genes.
 #' @param sign.name String containing the variable name for the numeric vector of signed effect sizes (typically log-fold changes) for each gene.
 #' The referenced vector should be of length equal to the number of genes.
-#' It can be omitted if the statistics referenced by \code{stat.name} is already signed.
-#' It can also be omitted for \code{alternative="mixed"}.
+#' It can be \code{NULL} if the statistics referenced by \code{stat.name} is already signed or \code{alternative="mixed"}.
 #' @param use.sqrt Boolean indicating whether to take the square root of the unsigned statistics when converting them to signed values.
 #' @param alternative String specifying the alternative hypothesis. 
 #' This should be one of:
@@ -87,7 +86,7 @@ generateGeneSetTestCommands <- function(sets.name, stat.name, sign.name, alterna
         FUN.VALUE=0
     )
 
-    out <- DataFrame(row.names=names(sets), NumGenes=sizes, PValue=p)
+    out <- S4Vectors::DataFrame(row.names=names(sets), NumGenes=sizes, PValue=all.p)
     out$FDR <- p.adjust(out$PValue, method='BH')
 :BEGIN more-alt
     direction <- vapply(
@@ -104,20 +103,21 @@ generateGeneSetTestCommands <- function(sets.name, stat.name, sign.name, alterna
     parsed <- parseRmdTemplate(template)
 
     alternative <- match.arg(alternative)
-    replacements <- list(ALTERNATIVE = alternative, SETS=sets.name, STAT=stat.name, SIGN=sign.name)
+    replacements <- list(ALTERNATIVE = deparseToString(alternative), SETS=sets.name, STAT=stat.name, SIGN=sign.name)
     if (!is.null(seed)) {
         parsed$seed <- NULL
     } else {
-        replacements$seed <- deparseToString(seed)
+        replacements$SEED <- deparseToString(seed)
     }
 
     if (alternative == "mixed") {
         # geneSetTest just takes the absolute value internally so the sign doesn't matter.
         parsed[["re-sign"]] <- NULL
         parsed[["sign-setup"]] <- NULL
-        replacements$TYPE <- "f"
+        replacements$TYPE <- "\"f\""
+
     } else {
-        if (is.null(sign)) {
+        if (is.null(sign.name)) {
             parsed[["re-sign"]] <- NULL
             parsed[["sign-setup"]] <- NULL
         } else {
@@ -127,10 +127,10 @@ generateGeneSetTestCommands <- function(sets.name, stat.name, sign.name, alterna
                 replacements$SANITIZER <- "abs(stat)"
             }
         }
-        replacements$TYPE <- "t"
+        replacements$TYPE <- "\"t\""
     }
 
-    if (alternative == "either") {
+    if (alternative != "either") {
         parsed[["more-alt"]] <- NULL
     }
 

@@ -60,10 +60,18 @@ generateCameraPrCommands <- function(sets.name, stat.name, sign.name, alternativ
     stat <- <%= SANITIZER %> * base::sign(sign)
 
 :END
+:BEGIN de-sign
+    # Removing the sign to avoid warnings.
+    stat <- abs(stat)
+
+:END
     out <- limma::cameraPR(
         statistic=stat,
         index=nonempty.sets,
-        directional=<%= USE_DIRECTION %>,
+:BEGIN non-directional 
+        use.ranks=TRUE,
+        directional=FALSE,
+:END
         sort=FALSE,
 :BEGIN more-args
 :END
@@ -77,11 +85,13 @@ generateCameraPrCommands <- function(sets.name, stat.name, sign.name, alternativ
 
 :END
     out <- S4Vectors::DataFrame(out)
+    colnames(out)[colnames(out) == \"NGenes\"] <- \"NumGenes\"
     out$FDR <- p.adjust(out$PValue, method='BH')
     out <- out[match(names(sets), rownames(out)),]
-    out$NumGenes <- sizes
+:BEGIN report-direction 
+    out$Direction <- tolower(out$Direction)
+:END
     rownames(out) <- old.names
-
     out
 })"
 
@@ -94,13 +104,12 @@ generateCameraPrCommands <- function(sets.name, stat.name, sign.name, alternativ
         parsed[["re-sign"]] <- NULL
         parsed[["sign-setup"]] <- NULL
         parsed[["one-sided"]] <- NULL
-        replacements$USE_DIRECTION <- FALSE
 
     } else {
-        replacements$USE_DIRECTION <- TRUE
         parsed[["de-sign"]] <- NULL
+        parsed[["non-directional"]] <- NULL
 
-        if (is.null(sign)) {
+        if (is.null(sign.name)) {
             parsed[["re-sign"]] <- NULL
             parsed[["sign-setup"]] <- NULL
         } else {
@@ -114,12 +123,12 @@ generateCameraPrCommands <- function(sets.name, stat.name, sign.name, alternativ
         if (alternative == "either") {
             parsed[["one-sided"]] <- NULL
         } else {
-            replacements$DIRECTION <- if (alternative == "up") "Up" else "Down"
+            replacements$DIRECTION <- deparseToString(if (alternative == "up") "Up" else "Down")
         }
     }
 
-    if (alternative == "either") {
-        parsed[["more-alt"]] <- NULL
+    if (alternative != "either") {
+        parsed[["report-direction"]] <- NULL
     }
 
     if (length(args)) {
