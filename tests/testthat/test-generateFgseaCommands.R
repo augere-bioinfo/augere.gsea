@@ -10,7 +10,7 @@ test_that("generateFgseaCommands works as expected", {
         C=200:300
     )
 
-    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR")
+    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=69)
 
     env <- new.env()
     env$FOO <- sets
@@ -72,12 +72,12 @@ test_that("generateFgseaCommands works with other alternative hypotheses", {
     env$BAR[451:460] <- -1
     env$BAR[911:920] <- rep(c(1, -1), length.out=10)
 
-    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="up")
+    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="up", seed=40)
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_lt(result$PValue[1], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[2])
 
-    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="down")
+    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="down", seed=41)
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_lt(result$PValue[2], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[1])
@@ -107,7 +107,7 @@ test_that("generateFgseaCommands works with empty sets", {
     env$FOO <- sets
     env$BAR <- runif(ngenes, -1, 1)
 
-    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR")
+    cmds <- generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=66)
     result <- eval(parse(text=cmds), envir=env)
     expect_identical(which(is.na(result$PValue)), 2L)
 })

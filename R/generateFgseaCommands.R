@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateFgseaCommands <- function(sets.name, stat.name, alternative=c("mixed", "up", "down", "either"), seed=NULL, args=list()) {
+generateFgseaCommands <- function(sets.name, stat.name, seed, alternative=c("mixed", "up", "down", "either"), args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     stat <- <%= STAT %>
@@ -19,9 +19,7 @@ generateFgseaCommands <- function(sets.name, stat.name, alternative=c("mixed", "
 :BEGIN de-sign
     stat <- abs(stat) # Removing the sign so that fgsea only uses the magnitude.
 :END
-:BEGIN seed
     set.seed(<%= SEED %>)
-:END
     raw <- fgsea::fgsea(
         named.sets,
         stat,
@@ -50,7 +48,7 @@ generateFgseaCommands <- function(sets.name, stat.name, alternative=c("mixed", "
     parsed <- parseRmdTemplate(template)
 
     alternative <- match.arg(alternative)
-    replacements <- list(SETS=sets.name, STAT=stat.name)
+    replacements <- list(SETS=sets.name, STAT=stat.name, SEED=deparseToString(seed))
 
     if (alternative == "mixed") {
         # FYI check out fgsea:::preparePathwaysAndStats where they just take
@@ -68,11 +66,6 @@ generateFgseaCommands <- function(sets.name, stat.name, alternative=c("mixed", "
 
     if (length(args)) {
         parsed[["more-args"]] <- .format_more_args(args, comma.last=FALSE)
-    }
-    if (!is.null(seed)) {
-        replacements$SEED <- seed
-    } else {
-        parsed[["seed"]] <- NULL
     }
 
     formatted <- replacePlaceholders(parsed, replacements)
