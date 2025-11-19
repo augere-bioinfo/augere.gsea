@@ -1,0 +1,385 @@
+---
+title: GSEA with precomputed statistics
+author:
+<%= AUTHOR %>
+date: "`r Sys.Date()`"
+output: BiocStyle::html_document
+---
+
+# Loading statistics
+
+We construct the data frame of precomputed statistics for each gene.
+This is typically from a differential expression analysis.
+
+```{r}
+:BEGIN setup-tab
+:END
+tab
+```
+
+We remove rows with `NA` values, e.g., because they correspond to low-abundance genes.
+
+```{r}
+discard <- lapply(tab[,<%= ALL_STAT_NAMES %>,drop=FALSE], function(x) is.na(x))
+discard <- Reduce(`|`, discard)
+tab <- tab[!discard,,drop=FALSE]
+nrow(tab)
+```
+
+We also extract some statistics for use in all methods:
+
+```{r}
+:BEGIN setup-signif
+is.sig <- tab[,<%= SIGNIF_FIELD %>] <= <%= SIGNIF_THRESHOLD %>
+summary(is.sig)
+:END
+:BEGIN setup-rank
+rank.stat <- tab[,<%= RANK_FIELD %>]
+summary(rank.stat)
+:END
+:BEGIN setup-sign
+sign.stat <- tab[,<%= SIGN_FIELD %>]
+summary(sign.stat)
+:END
+```
+
+:BEGIN re-sign
+We re-introduce a sign to the rank statistic using a signed statistic, e.g., the log-fold change.
+:BEGIN sqrt-txt
+This includes a square-root so that F-statistics, chi-squared statistics, etc. are converted to their signed counterparts, i.e., t-statistics, Z-scores.
+:END
+
+```{r}
+rank.stat <- <%= SANITIZER %> * base::sign(sign.stat)
+```
+:END
+
+# Loading gene sets
+
+We set up the collection of gene sets. 
+
+```{r}
+:BEGIN setup-sets
+:END
+```
+
+We convert them into row indices:
+
+```{r}
+indices <- limma::ids2indices(
+    as.list(sets),
+    rownames(tab),
+    remove.empty=FALSE
+)
+summary(lengths(indices))
+```
+
+# Preparing output 
+
+We create a list to store the results.
+
+```{r}
+all.results <- list()
+```
+
+We create a directory in which to save the results to disk.
+
+```{r save-directory}
+result.dir <- "results"
+dir.create(result.dir)
+```
+
+:BEGIN create-common-metadata
+We some common metadata to add to each result.
+
+```{r}
+common.meta <- <%= COMMON_METADATA %>
+```
+:END
+
+:BEGIN common-annotation
+We extract some annotation to add to each `DataFrame`.
+
+```{r}
+common.anno <- S4Vectors::mcols(collection)[,<%= ANNO_FIELDS %>,drop=FALSE]
+```
+:END
+
+:BEGIN hypergeometric
+
+# Hypergeometric test
+
+This tests for an enrichment of significant genes in each gene set, equivalent to Fisher's exact test.
+
+```{r}
+res.hyper <- <%= HYPER_CMDS %>
+:BEGIN add-annotation
+res.hyper <- cbind(common.anno, res.hyper)
+:END
+```
+
+Checking out top-ranked gene sets: 
+
+```{r}
+res.hyper[head(order(res.hyper$PValue), 10),]
+```
+
+Then we add it to the output list:
+
+```{r}
+all.results[["hypergeometric"]] <- res.hyper
+```
+
+And we save it to file.
+
+```{r <%= HYPER_SAVE_CHUNK_NAME %>}
+hyper.meta <- list(
+    title="Hypergeometric test results",
+    authors=<%= RAW_AUTHOR %>,
+    type="precomputed_gene_set_enrichment",
+    precomputed_gene_set_enrichment=list(
+        method="hypergeometric",
+        alternative=<%= ALTERNATIVE %>
+    )
+)
+
+augere.core::saveResult(
+    res.hyper,
+    file.path(result.dir, "hypergeometric"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, hyper.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=hyper.meta
+:END
+)
+```
+
+:END
+
+:BEGIN goseq
+
+# `goseq`
+
+Differences in length and abundance can affect detection power in the precomputed hypothesis tests.
+To account for these effects, we use the `r BiocStyle::Biocpkg('goseq')` package to consider differences in detection probability.
+We use a proxy for the bias in detection across genes:
+
+```{r}
+bias.stat <- tab[[<%= GOSEQ_BIAS_FIELD %>]]
+summary(bias.stat)
+```
+
+We then run `r BiocStyle::Biocpkg("goseq")`:
+
+```{r}
+res.goseq <- <%= GOSEQ_CMDS %>
+:BEGIN add-annotation 
+res.goseq <- cbind(common.anno, res.goseq)
+:END
+```
+
+We check out the the top sets:
+
+```{r}
+res.goseq[head(order(res.goseq$PValue), 10),]
+```
+
+We add it to the list.
+
+```{r}
+all.results[["goseq"]] <- res.goseq
+```
+
+Also saving it to file.
+
+```{r <%= GOSEQ_SAVE_CHUNK_NAME %>}
+goseq.meta <- list(
+    title="goseq results",
+    authors=<%= RAW_AUTHOR %>,
+    type="precomputed_gene_set_enrichment",
+    precomputed_gene_set_enrichment=list(
+        method="goseq",
+        alternative=<%= ALTERNATIVE %>
+    )
+)
+
+augere.core::saveResult(
+    res.goseq,
+    file.path(result.dir, "goseq"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, goseq.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=goseq.meta
+:END
+)
+```
+
+:END
+
+:BEGIN geneSetTest
+
+# `geneSetTest`
+
+Given a per-gene statistic is related to significance in hypothesis tests (e.g., t-statistics, F-statistics, likelihood ratios),
+the `geneSetTest()` function from `r BiocStyle::Biocpkg('limma')` will test whether genes in each set are highly ranked compared to the other genes.
+
+```{r}
+res.gst <- <%= GST_CMDS %>
+:BEGIN add-annotation
+res.gst <- cbind(common.anno, res.gst)
+:END
+```
+
+We check out the the top sets:
+
+```{r}
+res.gst[head(order(res.gst$PValue), 10),]
+```
+
+We add it to the list.
+
+```{r}
+all.results[["geneSetTest"]] <- res.gst
+```
+
+Also saving it to file.
+
+```{r <%= GST_SAVE_CHUNK_NAME %>}
+gst.meta <- list(
+    title="geneSetTest results",
+    authors=<%= RAW_AUTHOR %>,
+    type="precomputed_gene_set_enrichment",
+    precomputed_gene_set_enrichment=list(
+        method="geneSetTest",
+        alternative=<%= ALTERNATIVE %>
+    )
+)
+
+augere.core::saveResult(
+    res.gst,
+    file.path(result.dir, "geneSetTest"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, gst.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=gst.meta
+:END
+)
+```
+
+:END
+
+:BEGIN fgsea
+
+# `fgsea`
+
+Given a per-gene statistic is related to significance in hypothesis tests (e.g., t-statistics, F-statistics, likelihood ratios),
+the `fgsea()` function from `r BiocStyle::Biocpkg('fgsea')` will test for differences in ranking between genes inside and outside of the set.
+
+```{r}
+res.fgsea <- <%= FGSEA_CMDS %>
+:BEGIN add-annotation
+res.gst <- cbind(common.anno, res.fgsea)
+:END
+```
+
+We check out the the top sets:
+
+```{r}
+res.fgsea[head(order(res.fgsea$PValue), 10),]
+```
+
+We add it to the list.
+
+```{r}
+all.results[["fgsea"]] <- res.fgsea
+```
+
+Saving it to file.
+
+```{r <%= FGSEA_SAVE_CHUNK_NAME %>}
+fgsea.meta <- list(
+    title="fgsea results",
+    authors=<%= RAW_AUTHOR %>,
+    type="precomputed_gene_set_enrichment",
+    precomputed_gene_set_enrichment=list(
+        method="fgsea",
+        alternative=<%= ALTERNATIVE %>
+    )
+)
+
+augere.core::saveResult(
+    res.fgsea,
+    file.path(result.dir, "fgsea"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, fgsea.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=fgsea.meta
+:END
+)
+```
+
+:END
+
+:BEGIN cameraPR
+
+# Pre-ranked CAMERA
+
+Given a per-gene statistic is related to significance in hypothesis tests (e.g., t-statistics, F-statistics, likelihood ratios),
+the `cameraPR()` function from `r BiocStyle::Biocpkg('limma')` will test for differences in ranking between genes inside and outside of the set.
+This also accounts for the inflated variance of the test statistic due to correlations between genes in the set.
+
+```{r}
+res.camera <- <%= CAMERA_CMDS %>
+:BEGIN add-annotation
+res.camera <- cbind(common.anno, res.camera)
+:END
+```
+
+We check out the the top sets:
+
+```{r}
+res.camera[head(order(res.camera$PValue), 10),]
+```
+
+We add it to the list.
+
+```{r}
+all.results[["cameraPR"]] <- res.camera
+```
+
+Saving it to file.
+
+```{r <%= CAMERA_SAVE_CHUNK_NAME %>}
+camera.meta <- list(
+    title="cameraPR",
+    authors=<%= RAW_AUTHOR %>,
+    type="precomputed_gene_set_enrichment",
+    precomputed_gene_set_enrichment=list(
+        method="cameraPR",
+        alternative=<%= ALTERNATIVE %>
+    )
+)
+
+augere.core::saveResult(
+    res.camera,
+    file.path(result.dir, "cameraPR"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, camera.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=camera.meta
+:END
+)
+```
+
+:END
+
+# Session information {-}
+
+```{r}
+sessionInfo()
+```
