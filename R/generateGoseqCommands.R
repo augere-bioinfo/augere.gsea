@@ -1,31 +1,3 @@
-#' Commands for goseq 
-#'
-#' Generate R commands to run \code{\link[goseq]{goseq}} under various parameterizations.
-#' 
-#' @inheritParams generateHypergeometricTestCommands
-#' @param bias.name String containing the variable name for the numeric vector of biases (typically lengths or abundances) for each gene.
-#' The referenced vector should be of length equal to the number of genes.
-#'
-#' @return Character vector containing the commands required to run \code{\link[goseq]{goseq}}.
-#' Upon evaluation, this produces a \link[S4Vectors]{DFrame} with one row per gene set and the following columns:
-#' \itemize{
-#' \item \code{NumGenes}, the number of genes in each set. 
-#' \item \code{NumSig}, the number of significant genes in each set, possibly after filtering for the desired sign.
-#' \item \code{PValue}, the p-value for enrichment from the hypergeometric test.
-#' \item \code{FDR}, the Benjamini-Hochberg-adjusted p-value.
-#' \item \code{Direction}, whether the set is more enriched for up- or down-regulated genes.
-#' Only reported for \code{alternative="either"}.
-#' }
-#'
-#' @inheritSection generateHypergeometricTestCommands Direction of the alternative hypothesis
-#'
-#' @author Aaron Lun
-#' 
-#' @examples
-#' cat(generateGoseqCommands("sets", "is.sig", "sign", "logcpm"), sep="\n")
-#' cat(generateGoseqCommands("sets", "is.sig", "sign", "logcpm", alternative="either"), sep="\n")
-#'
-#' @export
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame

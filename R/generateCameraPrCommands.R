@@ -1,29 +1,3 @@
-#' Commands for pre-ranked CAMERA
-#'
-#' Generate R commands to run \code{\link[limma]{cameraPR}} under various parametrizations.
-#'
-#' @inheritParams generateHypergeometricTestCommands
-#' @param args Named list of arguments to pass to \code{\link[limma]{cameraPR}}.
-#'
-#' @inheritSection generateGeneSetTestCommands Direction of the alternative hypothesis
-#'
-#' @author Aaron Lun
-#'
-#' @return Character vector containing the commands required to run \code{cameraPR}.
-#' Upon evaluation, this produces a \link[S4Vectors]{DFrame} with one row per gene set and the following columns:
-#' \itemize{
-#' \item \code{NumGenes}, the number of genes in each set.
-#' \item \code{PValue}, the p-value for enrichment of highly-ranked genes in this set.
-#' \item \code{FDR}, the Benjamini-Hochberg-adjusted p-value.
-#' \item \code{Direction}, whether the set is more enriched for up- or down-regulated genes.
-#' Only reported for \code{alternative="either"}.
-#' }
-#'
-#' @examples
-#' cat(generateCameraPrCommands("sets", "stat"), sep="\n")
-#' cat(generateCameraPrCommands("sets", "stat", alternative="either"), sep="\n")
-#'
-#' @export
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame

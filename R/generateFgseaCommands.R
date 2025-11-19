@@ -1,31 +1,3 @@
-#' Commands for FGSEA
-#'
-#' Generate R commands to run \code{\link[fgsea]{fgsea}} under various parametrizations.
-#'
-#' @inheritParams generateGeneSetTestCommands
-#' @param args Named list of arguments to pass to \code{\link[fgsea]{fgsea}}.
-#'
-#' @inheritSection generateGeneSetTestCommands Direction of the alternative hypothesis
-#'
-#' @author Aaron Lun
-#'
-#' @return Character vector containing the commands required to run \code{fgsea}.
-#' Upon evaluation, this produces a \link[S4Vectors]{DFrame} with one row per gene set and the following columns:
-#' \itemize{
-#' \item \code{NumGenes}, the number of genes in each set.
-#' \item \code{ES}, the enrichment score.
-#' \item \code{NES}, the normalized enrichment score.
-#' \item \code{PValue}, the p-value for enrichment of highly-ranked genes in this set.
-#' \item \code{FDR}, the Benjamini-Hochberg-adjusted p-value.
-#' \item \code{Direction}, whether the set is more enriched for up- or down-regulated genes.
-#' Only reported for \code{alternative="either"}.
-#' }
-#'
-#' @examples
-#' cat(generateFgseaCommands("sets", "stat"), sep="\n")
-#' cat(generateFgseaCommands("sets", "stat", alternative="either"), sep="\n")
-#'
-#' @export
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
