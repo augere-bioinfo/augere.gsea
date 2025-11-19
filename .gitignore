@@ -1,3 +1,4 @@
 *.swp
 *.html
-*_files
+vignettes/*_files
+tests/testthat/_problems
