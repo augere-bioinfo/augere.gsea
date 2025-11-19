@@ -101,7 +101,7 @@ common.meta <- <%= COMMON_METADATA %>
 We extract some annotation to add to each `DataFrame`.
 
 ```{r}
-common.anno <- S4Vectors::mcols(collection)[,<%= ANNO_FIELDS %>,drop=FALSE]
+common.anno <- S4Vectors::mcols(sets)[,<%= ANNO_FIELDS %>,drop=FALSE]
 ```
 :END
 
@@ -281,7 +281,7 @@ the `fgsea()` function from `r BiocStyle::Biocpkg('fgsea')` will test for differ
 ```{r}
 res.fgsea <- <%= FGSEA_CMDS %>
 :BEGIN add-annotation
-res.gst <- cbind(common.anno, res.fgsea)
+res.fgsea <- cbind(common.anno, res.fgsea)
 :END
 ```
 

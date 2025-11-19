@@ -298,7 +298,7 @@ runGseaPrecomputed <- function(
     if (save.results) {
         skip.chunks <- NULL
     } else {
-        skip.chunks <- save.chunk.names
+        skip.chunks <- c("save-directory", save.chunk.names)
     }
 
     env <- new.env()
