@@ -10,8 +10,7 @@ test_that("generateGeneSetTestCommands works as expected", {
         C=200:300
     )
 
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL)
-    expect_false(any(grepl("sign <-", cmds)))
+    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR")
 
     env <- new.env()
     env$FOO <- sets
@@ -73,17 +72,17 @@ test_that("generateGeneSetTestCommands works with other alternative hypotheses",
     env$BAR[451:460] <- -1
     env$BAR[911:920] <- rep(c(1, -1), length.out=10)
 
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="up")
+    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", alternative="up")
     result <- eval(parse(text=cmds), envir=env)
     expect_lt(result$PValue[1], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[2])
 
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="down")
+    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", alternative="down")
     result <- eval(parse(text=cmds), envir=env)
     expect_lt(result$PValue[2], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[1])
 
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="either", seed=42)
+    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", alternative="either", seed=42)
     either.result <- eval(parse(text=cmds), envir=env)
     expect_equal(either.result$Direction[1], "up")
     expect_equal(either.result$Direction[2], "down")
@@ -91,59 +90,9 @@ test_that("generateGeneSetTestCommands works with other alternative hypotheses",
     expect_lt(either.result$PValue[2], either.result$PValue[3])
 
     # Mixed should give us lower p-values than 'either' for the third set where the signs are mixed.
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="mixed", seed=42)
+    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", alternative="mixed", seed=42)
     mixed.result <- eval(parse(text=cmds), envir=env)
     expect_lt(mixed.result$PValue[3], either.result$PValue[3])
-})
-
-test_that("generateGeneSetTestCommands works with the sign", {
-    ngenes <- 1000
-    sets <- list(
-        A=1:20,
-        B=50:100,
-        C=200:300
-    )
-    stats <- runif(ngenes, -1, 1)
-
-    env <- new.env()
-    env$FOO <- sets
-    env$BAR <- stats
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="up", seed=69)
-    up.result <- eval(parse(text=cmds), envir=env)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="down", seed=69)
-    down.result <- eval(parse(text=cmds), envir=env)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL, alternative="either", seed=69)
-    either.result <- eval(parse(text=cmds), envir=env)
-
-    # Checking that we get the same result after re-introducing the sign.
-    env <- new.env()
-    env$FOO <- sets
-    env$BAR <- abs(stats)
-    env$WHEE <- sign(stats)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name="WHEE", alternative="up", seed=69)
-    up.result2 <- eval(parse(text=cmds), envir=env)
-    expect_identical(up.result, up.result2)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name="WHEE", alternative="down", seed=69)
-    down.result2 <- eval(parse(text=cmds), envir=env)
-    expect_identical(down.result, down.result2)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name="WHEE", alternative="either", seed=69)
-    either.result2 <- eval(parse(text=cmds), envir=env)
-    expect_identical(either.result, either.result2)
-
-    # Checking that we get the same result with a square root.
-    env <- new.env()
-    env$FOO <- sets
-    env$BAR <- stats^2
-    env$WHEE <- sign(stats)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name="WHEE", alternative="up", use.sqrt=TRUE, seed=69)
-    up.result2 <- eval(parse(text=cmds), envir=env)
-    expect_identical(up.result, up.result2)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name="WHEE", alternative="down", use.sqrt=TRUE, seed=69)
-    down.result2 <- eval(parse(text=cmds), envir=env)
-    expect_identical(down.result, down.result2)
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name="WHEE", alternative="either", use.sqrt=TRUE, seed=69)
-    either.result2 <- eval(parse(text=cmds), envir=env)
-    expect_identical(either.result, either.result2)
 })
 
 test_that("generateGeneSetTestCommands works with empty sets", {
@@ -158,7 +107,7 @@ test_that("generateGeneSetTestCommands works with empty sets", {
     env$FOO <- sets
     env$BAR <- runif(ngenes, -1, 1)
 
-    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR", sign.name=NULL)
+    cmds <- generateGeneSetTestCommands(sets.name="FOO", stat.name="BAR")
     result <- eval(parse(text=cmds), envir=env)
     expect_identical(which(is.na(result$PValue)), 2L)
 })

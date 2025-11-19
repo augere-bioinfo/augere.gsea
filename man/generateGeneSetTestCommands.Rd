@@ -7,10 +7,8 @@
 generateGeneSetTestCommands(
   sets.name,
   stat.name,
-  sign.name,
   alternative = c("mixed", "up", "down", "either"),
   seed = NULL,
-  use.sqrt = FALSE,
   args = list()
 )
 }
@@ -20,10 +18,6 @@ Each set should be an integer vector of indices into the variable named by \code
 
 \item{stat.name}{String containing the variable name of the numeric vector containing the test statistic for ranking genes.
 The referenced vector should be of length equal to the number of genes.}
-
-\item{sign.name}{String containing the variable name for the numeric vector of signed effect sizes (typically log-fold changes) for each gene.
-The referenced vector should be of length equal to the number of genes.
-It can be \code{NULL} if the statistics referenced by \code{stat.name} is already signed or \code{alternative="mixed"}.}
 
 \item{alternative}{String specifying the alternative hypothesis. 
 This should be one of:
@@ -36,8 +30,6 @@ This should be one of:
 
 \item{seed}{Seed for the random number generator.
 If \code{NULL}, no seed setting is performed.}
-
-\item{use.sqrt}{Boolean indicating whether to take the square root of the unsigned statistics when converting them to signed values.}
 
 \item{args}{Named list of arguments to pass to \code{\link[limma]{geneSetTest}}.}
 }
@@ -61,18 +53,14 @@ In general, it is expected that the statistics in \code{stat.name} are signed va
 Larger positive and negative values should correspond to stronger up- and down-regulation, respectively.
 This ensures that \code{alternative="up"} or \code{alternative="down"} will have the expected behavior.
 
-If the input statistics are unsigned, they are converted to their signed equivalents by multiplying it with the sign of the variable referenced by \code{sign}.
-For F-statistics or chi-squared statistics, we can set \code{use.sqrt=TRUE} to convert them to t-statistics and z-scores, respectively.
-This mimics the behavior of a test that produces signed test statistics.
-
 For \code{alternative="either"}, each gene set is tested separately for enrichment of up- and down-regulated genes.
 The reported \code{Direction} is defined based on the one with a lower p-value.
 In contrast, \code{alternative="mixed"} does not consider the sign at all, and only cares about enrichment of significant genes of any direction in each set.
 }
 
 \examples{
-cat(generateGeneSetTestCommands("sets", "stat", "sign"), sep="\n")
-cat(generateGeneSetTestCommands("sets", "stat", "sign", alternative="either"), sep="\n")
+cat(generateGeneSetTestCommands("sets", "stat"), sep="\n")
+cat(generateGeneSetTestCommands("sets", "stat", alternative="either"), sep="\n")
 
 }
 \author{

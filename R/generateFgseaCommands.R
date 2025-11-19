@@ -22,20 +22,17 @@
 #' }
 #'
 #' @examples
-#' cat(generateFgseaCommands("sets", "stat", "sign"), sep="\n")
-#' cat(generateFgseaCommands("sets", "stat", "sign", alternative="either"), sep="\n")
+#' cat(generateFgseaCommands("sets", "stat"), sep="\n")
+#' cat(generateFgseaCommands("sets", "stat", alternative="either"), sep="\n")
 #'
 #' @export
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c("mixed", "up", "down", "either"), seed=NULL, use.sqrt=FALSE, args=list()) {
+generateFgseaCommands <- function(sets.name, stat.name, alternative=c("mixed", "up", "down", "either"), seed=NULL, args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     stat <- <%= STAT %>
-:BEGIN sign-setup
-    sign <- <%= SIGN %>
-:END
 
     gene.names <- as.character(seq_along(stat))
     named.sets <- relist(gene.names[unlist(sets)], sets)
@@ -47,9 +44,6 @@ generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c
     keep <- sizes != 0L
     named.sets <- named.sets[keep]
 
-:BEGIN re-sign
-    stat <- <%= SANITIZER %> * base::sign(sign) # Re-introducing the sign.
-:END
 :BEGIN de-sign
     stat <- abs(stat) # Removing the sign so that fgsea only uses the magnitude.
 :END
@@ -84,31 +78,17 @@ generateFgseaCommands <- function(sets.name, stat.name, sign.name, alternative=c
     parsed <- parseRmdTemplate(template)
 
     alternative <- match.arg(alternative)
-    replacements <- list(SETS=sets.name, STAT=stat.name, SIGN=sign.name)
+    replacements <- list(SETS=sets.name, STAT=stat.name)
 
     if (alternative == "mixed") {
         # FYI check out fgsea:::preparePathwaysAndStats where they just take
         # the absolute value for the calculations.
         replacements$SCORE_TYPE <- "\"pos\""
-        parsed[["sign-setup"]] <- NULL
-        parsed[["re-sign"]] <- NULL
         parsed[["direction"]] <- NULL
 
     } else {
         replacements$SCORE_TYPE <- deparseToString(switch(alternative, up = "pos", down = "neg", either = "std"))
         parsed[["de-sign"]] <- NULL
-
-        if (is.null(sign.name)) {
-            parsed[["re-sign"]] <- NULL
-            parsed[["sign-setup"]] <- NULL
-        } else {
-            if (use.sqrt) {
-                replacements$SANITIZER <- "sqrt(abs(stat))"
-            } else {
-                replacements$SANITIZER <- "abs(stat)"
-            }
-        }
-
         if (alternative != "either") {
             parsed[["direction"]] <- NULL
         }

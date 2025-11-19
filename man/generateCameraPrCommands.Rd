@@ -7,19 +7,13 @@
 generateCameraPrCommands(
   sets.name,
   stat.name,
-  sign.name,
   alternative = c("mixed", "up", "down", "either"),
-  use.sqrt = FALSE,
   args = list()
 )
 }
 \arguments{
 \item{sets.name}{String containing the variable name for the list of gene sets.
 Each set should be an integer vector of indices into the variable named by \code{is.sig.name}.}
-
-\item{sign.name}{String containing the variable name for the numeric vector of signed effect sizes (typically log-fold changes) for each gene.
-The referenced vector should be of length equal to the number of genes.
-It can be \code{NULL} for \code{alternative="mixed"}.}
 
 \item{alternative}{String specifying the alternative hypothesis.
 This should be one of:
@@ -46,28 +40,11 @@ Only reported for \code{alternative="either"}.
 \description{
 Generate R commands to run \code{\link[limma]{cameraPR}} under various parametrizations.
 }
-\details{
-In general, it is expected that the statistics in \code{stat.name} are signed values from a differential expression analysis, e.g., t-statistics, z-scores.
-Larger positive and negative values should correspond to stronger up- and down-regulation, respectively.
-This ensures that \code{alternative="up"} or \code{alternative="down"} will have the expected behavior.
-
-If the input statistics are unsigned, they are converted to their signed equivalents by multiplying it with the sign of the variable referenced by \code{sign}.
-For F-statistics or chi-squared statistics, we can set \code{use.sqrt=TRUE} to convert them to t-statistics and z-scores, respectively.
-This mimics the behavior of a test that produces signed test statistics.
-
-For \code{alternative="either"}, each gene set is tested separately for enrichment of up- and down-regulated genes.
-The reported \code{Direction} is defined based on the one with a lower p-value.
-In contrast, \code{alternative="mixed"} does not consider the sign at all, and only cares about enrichment of significant genes of any direction in each set.
-}
 \section{Direction of the alternative hypothesis}{
 
 In general, it is expected that the statistics in \code{stat.name} are signed values from a differential expression analysis, e.g., t-statistics, z-scores.
 Larger positive and negative values should correspond to stronger up- and down-regulation, respectively.
 This ensures that \code{alternative="up"} or \code{alternative="down"} will have the expected behavior.
-
-If the input statistics are unsigned, they are converted to their signed equivalents by multiplying it with the sign of the variable referenced by \code{sign}.
-For F-statistics or chi-squared statistics, we can set \code{use.sqrt=TRUE} to convert them to t-statistics and z-scores, respectively.
-This mimics the behavior of a test that produces signed test statistics.
 
 For \code{alternative="either"}, each gene set is tested separately for enrichment of up- and down-regulated genes.
 The reported \code{Direction} is defined based on the one with a lower p-value.
@@ -75,8 +52,8 @@ In contrast, \code{alternative="mixed"} does not consider the sign at all, and o
 }
 
 \examples{
-cat(generateCameraPrCommands("sets", "stat", "sign"), sep="\n")
-cat(generateCameraPrCommands("sets", "stat", "sign", alternative="either"), sep="\n")
+cat(generateCameraPrCommands("sets", "stat"), sep="\n")
+cat(generateCameraPrCommands("sets", "stat", alternative="either"), sep="\n")
 
 }
 \author{

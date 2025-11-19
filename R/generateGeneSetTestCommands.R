@@ -5,10 +5,6 @@
 #' @inheritParams generateHypergeometricTestCommands
 #' @param stat.name String containing the variable name of the numeric vector containing the test statistic for ranking genes.
 #' The referenced vector should be of length equal to the number of genes.
-#' @param sign.name String containing the variable name for the numeric vector of signed effect sizes (typically log-fold changes) for each gene.
-#' The referenced vector should be of length equal to the number of genes.
-#' It can be \code{NULL} if the statistics referenced by \code{stat.name} is already signed or \code{alternative="mixed"}.
-#' @param use.sqrt Boolean indicating whether to take the square root of the unsigned statistics when converting them to signed values.
 #' @param alternative String specifying the alternative hypothesis. 
 #' This should be one of:
 #' \itemize{
@@ -25,10 +21,6 @@
 #' In general, it is expected that the statistics in \code{stat.name} are signed values from a differential expression analysis, e.g., t-statistics, z-scores.
 #' Larger positive and negative values should correspond to stronger up- and down-regulation, respectively.
 #' This ensures that \code{alternative="up"} or \code{alternative="down"} will have the expected behavior.
-#'
-#' If the input statistics are unsigned, they are converted to their signed equivalents by multiplying it with the sign of the variable referenced by \code{sign}.
-#' For F-statistics or chi-squared statistics, we can set \code{use.sqrt=TRUE} to convert them to t-statistics and z-scores, respectively.
-#' This mimics the behavior of a test that produces signed test statistics.
 #'
 #' For \code{alternative="either"}, each gene set is tested separately for enrichment of up- and down-regulated genes.
 #' The reported \code{Direction} is defined based on the one with a lower p-value.
@@ -47,30 +39,22 @@
 #' }
 #'
 #' @examples
-#' cat(generateGeneSetTestCommands("sets", "stat", "sign"), sep="\n")
-#' cat(generateGeneSetTestCommands("sets", "stat", "sign", alternative="either"), sep="\n")
+#' cat(generateGeneSetTestCommands("sets", "stat"), sep="\n")
+#' cat(generateGeneSetTestCommands("sets", "stat", alternative="either"), sep="\n")
 #'
 #' @export
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateGeneSetTestCommands <- function(sets.name, stat.name, sign.name, alternative=c("mixed", "up", "down", "either"), seed=NULL, use.sqrt=FALSE, args=list()) {
+generateGeneSetTestCommands <- function(sets.name, stat.name, alternative=c("mixed", "up", "down", "either"), seed=NULL, args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     stat <- <%= STAT %>
-:BEGIN sign-setup
-    sign <- <%= SIGN %>
-:END
 
     sizes <- unname(lengths(sets))
     keep <- sizes != 0L
     nonempty.sets <- unname(sets)[keep]
 
-:BEGIN re-sign
-    # Re-introducing the sign.
-    stat <- <%= SANITIZER %> * base::sign(sign)
-
-:END
 :BEGIN seed
     set.seed(<%= SEED %>)
 :END
@@ -103,7 +87,7 @@ generateGeneSetTestCommands <- function(sets.name, stat.name, sign.name, alterna
     parsed <- parseRmdTemplate(template)
 
     alternative <- match.arg(alternative)
-    replacements <- list(ALTERNATIVE = deparseToString(alternative), SETS=sets.name, STAT=stat.name, SIGN=sign.name)
+    replacements <- list(ALTERNATIVE = deparseToString(alternative), SETS=sets.name, STAT=stat.name)
     if (!is.null(seed)) {
         parsed$seed <- NULL
     } else {
@@ -111,22 +95,9 @@ generateGeneSetTestCommands <- function(sets.name, stat.name, sign.name, alterna
     }
 
     if (alternative == "mixed") {
-        # geneSetTest just takes the absolute value internally so the sign doesn't matter.
-        parsed[["re-sign"]] <- NULL
-        parsed[["sign-setup"]] <- NULL
+        # geneSetTest just takes the absolute value internally so any sign will automatically be ignored. 
         replacements$TYPE <- "\"f\""
-
     } else {
-        if (is.null(sign.name)) {
-            parsed[["re-sign"]] <- NULL
-            parsed[["sign-setup"]] <- NULL
-        } else {
-            if (use.sqrt) {
-                replacements$SANITIZER <- "sqrt(abs(stat))"
-            } else {
-                replacements$SANITIZER <- "abs(stat)"
-            }
-        }
         replacements$TYPE <- "\"t\""
     }
 
