@@ -10,7 +10,7 @@ test_that("generateCameraPrCommands works as expected", {
         C=200:300
     )
 
-    cmds <- generateCameraPrCommands(sets.name="FOO", stat.name="BAR")
+    cmds <- augere.gsea:::.generateCameraPrCommands(sets.name="FOO", stat.name="BAR")
 
     env <- new.env()
     env$FOO <- sets
@@ -72,17 +72,17 @@ test_that("generateCameraPrCommands works with other alternative hypotheses", {
     env$BAR[451:460] <- -1
     env$BAR[911:920] <- rep(c(1, -1), length.out=10)
 
-    cmds <- generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="up")
+    cmds <- augere.gsea:::.generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="up")
     result <- eval(parse(text=cmds), envir=env)
     expect_lt(result$PValue[1], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[2])
 
-    cmds <- generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="down")
+    cmds <- augere.gsea:::.generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="down")
     result <- eval(parse(text=cmds), envir=env)
     expect_lt(result$PValue[2], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[1])
 
-    cmds <- generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="either")
+    cmds <- augere.gsea:::.generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="either")
     either.result <- eval(parse(text=cmds), envir=env)
     expect_equal(either.result$Direction[1], "up")
     expect_equal(either.result$Direction[2], "down")
@@ -90,7 +90,7 @@ test_that("generateCameraPrCommands works with other alternative hypotheses", {
     expect_lt(either.result$PValue[2], either.result$PValue[3])
 
     # Mixed should give us lower p-values than 'either' for the third set where the signs are mixed.
-    cmds <- generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="mixed")
+    cmds <- augere.gsea:::.generateCameraPrCommands(sets.name="FOO", stat.name="BAR", alternative="mixed")
     mixed.result <- eval(parse(text=cmds), envir=env)
     expect_lt(mixed.result$PValue[3], either.result$PValue[3])
 })
@@ -107,7 +107,7 @@ test_that("generateCameraPrCommands works with empty sets", {
     env$FOO <- sets
     env$BAR <- runif(ngenes, -1, 1)
 
-    cmds <- generateCameraPrCommands(sets.name="FOO", stat.name="BAR")
+    cmds <- augere.gsea:::.generateCameraPrCommands(sets.name="FOO", stat.name="BAR")
     result <- eval(parse(text=cmds), envir=env)
     expect_identical(which(is.na(result$PValue)), 2L)
 })

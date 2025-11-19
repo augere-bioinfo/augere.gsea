@@ -11,7 +11,7 @@ test_that("generateGoseqCommands works as expected", {
     )
     bias <- 2^rexp(ngenes)
 
-    cmds <- generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL)
+    cmds <- augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL)
     expect_false(any(grepl("sign <-", cmds)))
 
     env <- new.env()
@@ -70,7 +70,7 @@ test_that("generateGoseqCommands works with other alternative hypotheses", {
     )
     bias <- 2^rexp(ngenes)
 
-    expect_error(generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL, alternative="up"), "'sign'")
+    expect_error(augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL, alternative="up"), "'sign'")
 
     # Set A is only up, set B is only down, set C is 50:50.
     # Only the first half is significant.
@@ -87,7 +87,7 @@ test_that("generateGoseqCommands works with other alternative hypotheses", {
     env$WHEE <- signs
     env$STUFF <- bias
 
-    cmds <- generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name="WHEE", alternative="up")
+    cmds <- augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name="WHEE", alternative="up")
     expect_true(any(grepl("sign <-", cmds)))
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_lt(result$PValue[1], result$PValue[3])
@@ -95,14 +95,14 @@ test_that("generateGoseqCommands works with other alternative hypotheses", {
     expect_lt(result$PValue[3], 0.1)
     expect_equal(result$NumSig, c(10, 0, 5))
 
-    cmds <- generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name="WHEE", alternative="down")
+    cmds <- augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name="WHEE", alternative="down")
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_equal(result$PValue[1], 1)
     expect_lt(result$PValue[2], result$PValue[3])
     expect_lt(result$PValue[3], 0.1)
     expect_equal(result$NumSig, c(0, 10, 5))
 
-    cmds <- generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name="WHEE", alternative="either")
+    cmds <- augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name="WHEE", alternative="either")
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_equal(result$Direction[1], "up")
     expect_equal(result$Direction[2], "down")
@@ -125,7 +125,7 @@ test_that("generateGoseqCommands works with empty sets", {
     env$BAR <- rbinom(ngenes, 1, 0.5) == 1
     env$STUFF <- bias
 
-    cmds <- generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL)
+    cmds <- augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL)
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_identical(which(is.na(result$PValue)), 2L)
 })

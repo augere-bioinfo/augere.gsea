@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name, alternative=c("mixed", "up", "down", "either")) {
+.generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name, alternative=c("mixed", "up", "down", "either")) {
     template <- "local({
     # Simple implementation of the hypergeometric test.
     run_hypergeometric_test <- function(sets, is.sig) {

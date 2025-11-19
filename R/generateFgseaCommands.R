@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateFgseaCommands <- function(sets.name, stat.name, seed, alternative=c("mixed", "up", "down", "either"), args=list()) {
+.generateFgseaCommands <- function(sets.name, stat.name, seed, alternative=c("mixed", "up", "down", "either"), args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     stat <- <%= STAT %>

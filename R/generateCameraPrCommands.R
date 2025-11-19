@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateCameraPrCommands <- function(sets.name, stat.name, alternative=c("mixed", "up", "down", "either"), args=list()) {
+.generateCameraPrCommands <- function(sets.name, stat.name, alternative=c("mixed", "up", "down", "either"), args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     stat <- <%= STAT %>

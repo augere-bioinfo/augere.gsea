@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, alternative=c("mixed", "up", "down", "either"), args=list()) {
+.generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, alternative=c("mixed", "up", "down", "either"), args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     is.sig <- <%= IS_SIG %>

@@ -8,7 +8,7 @@ test_that("generateHypergeometricTestCommands works as expected", {
         C=200:300
     )
 
-    cmds <- generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL)
+    cmds <- augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL)
     expect_false(any(grepl("sign <-", cmds)))
 
     env <- new.env()
@@ -63,7 +63,7 @@ test_that("generateHypergeometricTestCommands works with other alternative hypot
         C=911:930
     )
 
-    expect_error(generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL, alternative="up"), "'sign'")
+    expect_error(augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL, alternative="up"), "'sign'")
 
     # Set A is only up, set B is only down, set C is 50:50.
     # Only the first half is significant.
@@ -79,7 +79,7 @@ test_that("generateHypergeometricTestCommands works with other alternative hypot
     env$BAR[911:920] <- TRUE
     env$WHEE <- signs
 
-    cmds <- generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name="WHEE", alternative="up")
+    cmds <- augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name="WHEE", alternative="up")
     expect_true(any(grepl("sign <-", cmds)))
     result <- eval(parse(text=cmds), envir=env)
     expect_lt(result$PValue[1], result$PValue[3])
@@ -87,14 +87,14 @@ test_that("generateHypergeometricTestCommands works with other alternative hypot
     expect_lt(result$PValue[3], 0.1)
     expect_equal(result$NumSig, c(10, 0, 5))
 
-    cmds <- generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name="WHEE", alternative="down")
+    cmds <- augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name="WHEE", alternative="down")
     result <- eval(parse(text=cmds), envir=env)
     expect_equal(result$PValue[1], 1)
     expect_lt(result$PValue[2], result$PValue[3])
     expect_lt(result$PValue[3], 0.1)
     expect_equal(result$NumSig, c(0, 10, 5))
 
-    cmds <- generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name="WHEE", alternative="either")
+    cmds <- augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name="WHEE", alternative="either")
     result <- eval(parse(text=cmds), envir=env)
     expect_equal(result$Direction[1], "up")
     expect_equal(result$Direction[2], "down")
@@ -115,7 +115,7 @@ test_that("generateHypergeometricTestCommands works with empty sets", {
     env$FOO <- sets
     env$BAR <- rbinom(ngenes, 1, 0.5) == 1
 
-    cmds <- generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL)
+    cmds <- augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL)
     result <- eval(parse(text=cmds), envir=env)
     expect_identical(which(is.na(result$PValue)), 2L)
 })

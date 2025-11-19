@@ -238,7 +238,7 @@ runGseaPrecomputed <- function(
     }
 
     if ("hypergeometric" %in% methods) {
-        replacements$HYPER_CMDS <- paste(generateHypergeometricTestCommands("indices", "is.sig", "sign.stat", alternative=alternative), collapse="\n")
+        replacements$HYPER_CMDS <- paste(.generateHypergeometricTestCommands("indices", "is.sig", "sign.stat", alternative=alternative), collapse="\n")
         parsed$hypergeometric <- process_common(parsed$hypergeometric)
         save.name <- "save-hyper"
         save.chunk.names <- c(save.chunk.names, save.name)
@@ -248,7 +248,7 @@ runGseaPrecomputed <- function(
     }
 
     if ("goseq" %in% methods) {
-        replacements$GOSEQ_CMDS <- paste(generateGoseqCommands("indices", "is.sig", "sign.stat", "bias.stat", alternative=alternative, args=goseq.args), collapse="\n")
+        replacements$GOSEQ_CMDS <- paste(.generateGoseqCommands("indices", "is.sig", "sign.stat", "bias.stat", alternative=alternative, args=goseq.args), collapse="\n")
         replacements$GOSEQ_BIAS_FIELD <- deparseToString(goseq.bias)
         parsed$goseq <- process_common(parsed$goseq)
         save.name <- "save-goseq"
@@ -259,7 +259,7 @@ runGseaPrecomputed <- function(
     }
 
     if ("geneSetTest" %in% methods) { 
-        replacements$GST_CMDS <- paste(generateGeneSetTestCommands("indices", "rank.stat", seed=rseed(), alternative=alternative, args=geneSetTest.args), collapse="\n")
+        replacements$GST_CMDS <- paste(.generateGeneSetTestCommands("indices", "rank.stat", seed=rseed(), alternative=alternative, args=geneSetTest.args), collapse="\n")
         parsed$geneSetTest <- process_common(parsed$geneSetTest)
         save.name <- "save-gst"
         save.chunk.names <- c(save.chunk.names, save.name)
@@ -269,7 +269,7 @@ runGseaPrecomputed <- function(
     }
 
     if ("fgsea" %in% methods) {
-        replacements$FGSEA_CMDS <- paste(generateFgseaCommands("indices", "rank.stat", seed=rseed(), alternative=alternative, args=fgsea.args), collapse="\n")
+        replacements$FGSEA_CMDS <- paste(.generateFgseaCommands("indices", "rank.stat", seed=rseed(), alternative=alternative, args=fgsea.args), collapse="\n")
         parsed$fgsea <- process_common(parsed$fgsea)
         save.name <- "save-fgsea"
         save.chunk.names <- c(save.chunk.names, save.name)
@@ -279,7 +279,7 @@ runGseaPrecomputed <- function(
     }
 
     if ("cameraPR" %in% methods) {
-        replacements$CAMERA_CMDS <- paste(generateCameraPrCommands("indices", "rank.stat", alternative=alternative, args=cameraPR.args), collapse="\n")
+        replacements$CAMERA_CMDS <- paste(.generateCameraPrCommands("indices", "rank.stat", alternative=alternative, args=cameraPR.args), collapse="\n")
         parsed$cameraPR <- process_common(parsed$cameraPR)
         save.name <- "save-cameraPR"
         save.chunk.names <- c(save.chunk.names, save.name)
