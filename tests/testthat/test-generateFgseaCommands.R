@@ -29,6 +29,13 @@ test_that("generateFgseaCommands works as expected", {
     expect_lt(result$PValue[2], 0.01)
     expect_gt(result$PValue[3], 0.01)
 
+    # Same results for alternative='mixed' when take the absolute values.
+    env.abs <- new.env()
+    env.abs$FOO <- sets
+    env.abs$BAR <- abs(env$BAR)
+    suppressWarnings(result.abs <- eval(parse(text=cmds), envir=env))
+    expect_identical(result, result.abs)
+
     # p-values follow the enrichment trend correctly.
     env <- new.env()
     env$FOO <- sets
