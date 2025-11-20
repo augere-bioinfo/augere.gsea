@@ -5,33 +5,41 @@
 \title{Differential gene set analyses with contrasts}
 \usage{
 runContrast(
-  se,
-  collection,
+  x,
+  sets,
   groups,
   comparison,
-  block = NULL,
   covariates = NULL,
-  assay = 1,
-  dup.cor = NULL,
-  robust = TRUE,
-  qualities = TRUE,
-  trend = FALSE,
+  block = NULL,
   subset.factor = NULL,
   subset.levels = NULL,
   subset.groups = TRUE,
   design = NULL,
   contrast = NULL,
-  anno = NULL,
+  dc.block = NULL,
+  robust = TRUE,
+  quality = TRUE,
+  trend = FALSE,
   methods = c("fry", "camera"),
-  output = "gsea-contrast",
+  assay = 1,
+  annotation = NULL,
   metadata = NULL,
+  output.dir = "contrast",
   author = NULL,
   dry.run = FALSE,
-  save.all = TRUE,
-  rand.seed = NULL
+  save.results = TRUE,
+  seed = NULL
 )
 }
 \arguments{
+\item{x}{A \link[SummarizedExperiment]{SummarizedExperiment} object containing a count matrix where genes and samples are in rows and columns, respectively.
+Alternatively, the output of \code{\link[augere.core]{wrapInput}} that refers to a SummarizedExperiment.}
+
+\item{sets}{A list or \link[IRanges]{CharacterList} of character vectors.
+Each vector represents a gene set and contains the identifiers for genes in that set.
+Identifiers should be consistent with the row names of \code{x}.
+The list may also be named with the names of the sets.}
+
 \item{groups}{String specifying the \code{\link[SummarizedExperiment]{colData}(x)} column containing the grouping factor of interest,
 see \code{\link[augere.de]{processSimpleDesignMatrix}} for more details.
 This may be \code{NULL} for experimental designs with no groups, e.g., \code{covariates} only.
@@ -46,21 +54,13 @@ see \code{\link[augere.de]{processSimpleComparisons}} for more details.
 
 Unlike \code{\link[augere.de]{runVoom}}, a list of vectors is not accepted.}
 
-\item{block}{Character vector specifying the \code{\link[SummarizedExperiment]{colData}(x)} columns containing additional (uninteresting) blocking factors,
-see \code{\link[augere.de]{processSimpleDesignMatrix}} for more details.
-Ignored if \code{design} and \code{contrasts} are provided.}
-
 \item{covariates}{Character vector specifying the \code{\link[SummarizedExperiment]{colData}(x)} columns containing continuous covariates of interest,
 see \code{\link[augere.de]{processSimpleDesignMatrix}} for more details.
 Ignored if \code{design} and \code{contrasts} are provided.}
 
-\item{assay}{String or integer specifying the assay of \code{x} containing the count matrix.}
-
-\item{robust}{Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[limma]{eBayes}}.
-Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme variances.}
-
-\item{trend}{Boolean indicating whether variances should be shrunk towards a trend in \code{\link[limma]{eBayes}}.
-Usually unnecessary as the observation weights already account for the mean-variance relationship.}
+\item{block}{Character vector specifying the \code{\link[SummarizedExperiment]{colData}(x)} columns containing additional (uninteresting) blocking factors,
+see \code{\link[augere.de]{processSimpleDesignMatrix}} for more details.
+Ignored if \code{design} and \code{contrasts} are provided.}
 
 \item{subset.factor}{String specifying the \code{\link[SummarizedExperiment]{colData}(x)} column containing the factor to use for subsetting.}
 
@@ -79,12 +79,25 @@ see \code{?\link[augere.de]{processCustomContrasts}} for more details.
 
 Unlike \code{\link[augere.de]{runVoom}}, a list of contrasts is not accepted.}
 
+\item{dc.block}{String specifying the blocking factor to use in \code{\link[limma]{duplicateCorrelation}}.
+Typically used for uninteresting factors that cannot be used in \code{block} as they are confounded with the factors of interest.
+No additional blocking is performed if \code{NULL}.}
+
+\item{robust}{Boolean indicating whether robust empirical Bayes shrinkage should be used in \code{\link[limma]{eBayes}}.
+Setting this to \code{TRUE} sacrifices some precision for improved robustness against genes with extreme variances.}
+
+\item{quality}{Boolean indicating whether quality weighting should be performed.
+This reduces the influence of low-quality samples at the cost of more computational work.}
+
+\item{trend}{Boolean indicating whether variances should be shrunk towards a trend in \code{\link[limma]{eBayes}}.
+Usually unnecessary as the observation weights already account for the mean-variance relationship.}
+
 \item{methods}{Character vector specifying the methods to run.
 This should contain at least one of the following:
 \itemize{
 \item \code{"mroast"}, which \code{\link[limma]{mroast}} from the \pkg{limma} package.
 This is a self-contained gene set test where the null hypothesis is that the genes in the set are not differentially expressed.
-\tiem \code{"fry"}, which calls \code{\link[limma]{fry}} from the \pkg{limma} package.
+\item \code{"fry"}, which calls \code{\link[limma]{fry}} from the \pkg{limma} package.
 This is also a self-contained gene set test that is a fast approximation of \code{mroast}.
 \item \code{"camera"}, which calls \code{\link[limma]{camera}} from the \pkg{limma} package.
 This is a competitive gene set test where the null hypothesis is that the genes in the set are not more DE than the genes outside the set.
@@ -92,13 +105,24 @@ This is a competitive gene set test where the null hypothesis is that the genes 
 This is also a competitive test that takes a different approach to accounting for correlations between genes in the same set.
 }}
 
+\item{assay}{String or integer specifying the assay of \code{x} containing the count matrix.}
+
+\item{annotation}{Character vector specifying the columns of \code{\link[S4Vectors]{mcols}(sets)} to store in each result DataFrames.}
+
 \item{metadata}{Named list of additional metadata to store alongside each result.}
+
+\item{output.dir}{String containing the path to an output directory in which to write the Rmarkdown file and save results.}
 
 \item{author}{Character vector containg the names of the authors.
 If \code{NULL}, defaults to the current user.}
 
 \item{dry.run}{Boolean indicating whether to perform a dry run.
 This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.}
+
+\item{save.results}{Boolean indicating whether the results should be saved to file.}
+
+\item{seed}{Integer containing the seed for random number generation.
+Specifically, this is used to sample seeds to insert into \code{\link{set.seed}} statements within the report.}
 }
 \value{
 A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 
@@ -121,38 +145,31 @@ If \code{dry.run=FALSE}, only the report is created, and \code{NULL} is returned
 }
 \description{
 Analyze a RNA-seq dataset for differential expression across a collection of gene sets.
-This requires access to the original values, unlike \code{\link{runGseaPrecomputed}}.
+This requires access to the original values, unlike \code{\link{runPrecomputed}}.
 }
 \examples{
-all.keys <- as.character(seq_len(1000))
+x <- augere.de::loadExampleDataset()
+all.genes <- rownames(x)
 
-library(SummarizedExperiment)
-mu <- 2^runif(length(all.keys), 3, 10)
-se <- SummarizedExperiment(list(counts=
-    matrix(rnbinom(length(mu) * 10, mu=mu, size=10), nrow=length(mu))),
-    colData=DataFrame(g=paste0("group", gl(2, 5)))
-)
-rownames(se) <- all.keys
-
-# Mocking up some gene sets.
-collection <- IRanges::CharacterList(
-    A=sample(all.keys, 100),
-    B=sample(all.keys, 500),
-    C=sample(all.keys, 200),
-    D=sample(all.keys, 20),
-    E=sample(all.keys, 10)
+sets <- list(
+    A = sample(all.genes, 100),
+    B = sample(all.genes, 500),
+    C = sample(all.genes, 200),
+    D = sample(all.genes, 20),
+    E = sample(all.genes, 10)
 )
 
-# Running the gene set tests.
-proj <- tempfile()
-out <- runGSEAContrast(se,
-    collection,
-    group="g", 
-    comparison=c("group2", "group1"),
-    output=proj)
+output.dir <- tempfile()
+res <- runContrast(
+    x,
+    sets,
+    group="dex", 
+    comparison=c("trt", "untrt"),
+    output=output.dir
+)
 
-list.files(proj, recursive=TRUE)
-out
+res
+list.files(output.dir, recursive=TRUE)
 
 }
 \author{

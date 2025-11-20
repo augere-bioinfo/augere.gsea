@@ -1,0 +1,510 @@
+---
+title: Differential gene set analysis
+author:
+<%= AUTHOR %>
+date: "`r Sys.Date()`"
+output: BiocStyle::html_document
+---
+
+```{r preamble, echo=FALSE}
+knitr::opts_chunk$set(error=FALSE, warning=FALSE, message=FALSE)
+```
+
+# Data loading
+
+We load our `SummarizedExperiment` object that contains our RNA-seq expression data.
+Each row corresponds to a gene while each column corresponds to a sample.
+
+```{r data-loading} 
+:BEGIN setup-data
+:END
+se
+```
+
+:BEGIN subset-data
+We subset our data to the samples of interest.
+
+```{r}
+sub.factor <- <%= SUBSET_FACTOR %>
+sub.levels <- <%= SUBSET_LEVELS %>
+se <- se[,SummarizedExperiment::colData(se)[,sub.factor] %in% sub.levels]
+subset.meta <- sprintf("%s IN (%s)", sub.factor, paste(sub.levels, collapse=","))
+ncol(se)
+```
+:END
+
+:BEGIN subset-group
+We subset our data to the groups being compared.
+This ensures that our variance estimates are not affected by irrelevant variability in other groups.
+
+```{r}
+se <- se[,SummarizedExperiment::colData(se)[,<%= GROUP_FACTOR %>] %in% <%= GROUP_LEVELS %>]
+ncol(se)
+```
+:END
+
+We extract the information into a `DGEList` object in preparation for analysis.
+
+```{r}
+y <- edgeR::DGEList(SummarizedExperiment::assay(se, <%= ASSAY %>))
+y$genes <- data.frame(origin=seq_len(nrow(se)))
+```
+
+# Design and contrast setup
+
+We build the design matrix, where each row corresponds to a sample and each column represents an experimental variable.
+
+```{r}
+:BEGIN create-design
+:END
+```
+
+And we set up the contrast.
+Given a contrast `con`, the null hypothesis for gene `i` is that the expectation of `sum(fit$coefficients[i,,drop=FALSE] %*% con)` is an all-zero vector.
+
+```{r}
+:BEGIN create-contrast
+:END
+con
+```
+
+# Gene filtering 
+
+We filter out low-abundance genes to improve the accuracy of the mean-variance trend fit.
+This also reduces computational work and the severity of the multiple testing correction.
+We use `r BiocStyle::Biocpkg("edgeR")`'s default filtering strategy,
+which only retains genes with coverage above a threshold in at least $n$ samples.
+
+```{r}
+filtered <- edgeR::filterByExpr(y, <%= FILTER_ARGS %>, large.n=0)
+summary(filtered)
+y <- y[filtered,]
+```
+
+The minimum threshold is defined as a CPM equivalent to a count of 10, adjusted for differences in library size.
+$n$ is defined as 70% of the size of the smallest group in the experimental design.
+(We set `large.n=0` to allow a gene to be below the threshold in some of the samples of a small group.) 
+
+# Normalization
+
+We use the trimmed mean of M-values (TMM) algorithm to normalize scaling biases between samples.
+The assumption is that most genes not exhibit any differences between samples; 
+any systematic differences across many genes are assumed to be technical and removed.
+
+```{r}
+y <- edgeR::calcNormFactors(y)
+head(y$samples, 10)
+```
+
+The TMM normalization factors go beyond library size normalization by accounting for composition biases.
+These biases are introduced by differential expression where upregulated genes outcompete others for sequencing resources,
+resulting in slightly incorrect log-fold changes and/or spurious DE. 
+`r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (scaled by `norm.factors`),
+which represent the combined effect of library size differences and composition biases.
+
+```{r}
+barplot(y$samples$norm.factors)
+```
+
+# Estimating observation weights 
+
+We use voom to create a empirical mean-variance trend to compute a weight for each observation. 
+In this manner, log-CPMs derived from low counts are downweighted to reflect their lower precision.
+:BEGIN quality-text
+We estimate sample-specific quality weights to reduce the impact of outlier replicates without resorting to their removal.
+:END
+:BEGIN duplicate-correlation
+We use `duplicateCorrelation()` to account for correlations between samples with the same level of blocking factor.
+
+```{r duplicate-correlation, fig.wide=TRUE}
+library(limma)
+dc.block <- factor(SummarizedExperiment::colData(se)[[<%= DUPCOR_BLOCK %>]])
+
+# Iteratively refine the precision weights after estimating the correlation. 
+v <- limma::<%= VOOM_CMD %>(y, design=design, plot=FALSE)
+dc <- limma::duplicateCorrelation(v, design=design, block=dc.block)
+v <- limma::<%= VOOM_CMD %>(y, design=design, plot=TRUE, block=dc.block, 
+    correlation=dc$consensus.correlation)
+dc <- limma::duplicateCorrelation(v, design=design, block=dc.block)
+
+dc$consensus.correlation
+```
+:END
+
+:BEGIN voom
+```{r voom}
+library(limma)
+v <- <%= VOOM_CMD %>(y, design=design, plot=TRUE)
+```
+:END
+
+Once the precision weights are computed, we fit the linear model for each gene. 
+
+```{r}
+fit <- lmFit(v<%= LM_OPTS %>)
+```
+
+Empirical Bayes shrinkage shares information across genes to stabilize the variance estimates.
+The estimated prior degrees of freedom (d.f.) represents the variability of the variances across genes, typically ranging from 5 to 20.
+Large values indicate that the variances were consistent across features, allowing us to perform more aggressive shrinkage for greater power.
+:BEGIN robust-text
+We enable robustification to ensure that highly variable genes (or very small variances at discrete low counts) do not deflate the prior degrees of freedom.
+:END
+
+```{r}
+fit <- limma::eBayes(fit<%= EB_OPTS %>)
+summary(fit$df.prior)
+```
+
+We examine the mean-variance relationship for the shrunk estimates.
+Ideally, there should be no trend at all as it should have been handled by the observation weights.
+
+```{r, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
+limma::plotSA(fit)
+```
+
+# Loading gene sets
+
+We load the gene sets. 
+
+```{r}
+:BEGIN loading-sets
+:END
+```
+
+We convert them into row indices:
+
+```{r}
+indices <- limma::ids2indices(
+    as.list(sets),
+    rownames(y),
+    remove.empty=FALSE
+)
+summary(lengths(indices))
+```
+
+:BEGIN common-annotation
+We extract some annotation to attach to the output `DataFrame`s.
+
+```{r}
+set.anno <- S4Vectors::mcols(sets)[,<%= ANNO_FIELDS %>,drop=FALSE]
+```
+:END
+
+# Preparing output 
+
+We create a list to store the results.
+
+```{r}
+all.results <- list()
+```
+
+We create a directory in which to save the results to disk.
+
+```{r save-directory}
+result.dir <- "results"
+dir.create(result.dir)
+```
+
+:BEGIN create-common-metadata
+We some common metadata to add to each result.
+
+```{r}
+common.meta <- <%= COMMON_METADATA %>
+```
+:END
+
+:BEGIN mroast
+
+# ROAST
+
+ROAST is a self-contained gene set test where the null hypothesis is that no genes in the set are differentially expressed.
+This is done by aggregating the effects into a single statistic per gene set (the mean, by default),
+and comparing this to a simulated null distribution created by rotations of the residuals of the linear model.
+The rotations preserve the correlation structure between genes in the same set, allowing ROAST to accurately control the type I error rate.
+
+```{r}
+set.seed(<%= SEED %>)
+res.roast <- limma::mroast(
+    v,
+    index=indices,
+    design=design,
+    contrast=con<%= MROAST_ARGS %>
+)
+```
+
+We perform some reformatting for consistency.
+
+```{r}
+res.roast <- S4Vectors::DataFrame(res.roast)
+res.roast <- res.roast[match(names(sets), rownames(res.roast)),]
+rownames(res.roast) <- names(sets)
+colnames(res.roast)[colnames(res.roast) == "NGenes"] <- "NumGenes"
+res.roast$NumGenes[is.na(res.roast$NumGenes)] <- 0L
+:BEGIN add-annotation
+res.roast <- cbind(common.anno, res.roast)
+:END
+```
+
+We examine the top hits:
+
+```{r}
+res.roast[head(order(res.roast$PValue), 10),]
+```
+
+We add it to the output list.
+
+```{r}
+all.results[["mroast"]] <- res.roast
+```
+
+Also saving it to file.
+
+```{r <%= SAVING_CHUNK_NAME %>}
+roast.meta <- list(
+    title=paste(<%= CONTRAST_NAME %>, "(ROAST)"),
+    authors=<%= RAW_AUTHOR %>,
+    differential_gene_set_test=list(
+:BEGIN diff-metadata
+:END 
+:BEGIN subset-metadata
+        subset=subset.meta,
+:END 
+        method="mroast"
+    )
+)
+
+augere.core::saveResult(
+    res.roast,
+    file.path(result.dir, "mroast"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, roast.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=roast.meta
+:END
+)
+```
+
+:END
+
+:BEGIN fry 
+
+# `fry`
+
+The `fry` function provides a fast approximation of the `mroast` function for a self-contained gene set test.
+Like ROAST, the null hypothesis for each gene set is that no genes in the set are differentially expressed.
+The speed-up is achieved by making some compromises on how unequal variances between genes are handled.
+
+```{r}
+res.fry <- limma::fry(
+    v,
+    index=indices,
+    design=design,
+    contrast=con<%= FRY_ARGS %>
+)
+```
+
+We perform some reformatting for consistency.
+
+```{r}
+res.fry <- DataFrame(res.fry)
+res.fry <- res.fry[match(names(sets), rownames(res.fry)),]
+rownames(res.fry) <- names(sets)
+colnames(res.fry)[colnames(res.fry) == "NGenes"] <- "NumGenes"
+res.fry$NumGenes[is.na(res.fry$NumGenes)] <- 0L
+:BEGIN add-annotation
+res.fry <- cbind(common.anno, res.fry)
+:END
+```
+
+We examine the top hits:
+
+```{r}
+res.fry[head(order(res.fry$PValue), 10),]
+```
+
+We add it to the output list.
+
+```{r}
+all.results[["fry"]] <- res.fry
+```
+
+Also saving it to file.
+
+```{r <%= SAVING_CHUNK_NAME %>}
+fry.meta <- list(
+    title=paste(<%= CONTRAST_NAME %>, "(FRY)"),
+    authors=<%= RAW_AUTHOR %>,
+    differential_gene_set_test=list(
+:BEGIN diff-metadata
+:END 
+:BEGIN subset-metadata
+        subset=subset.meta,
+:END 
+        method="fry"
+    )
+)
+
+augere.core::saveResult(
+    res.fry,
+    file.path(result.dir, "fry"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, fry.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=fry.meta
+:END
+)
+```
+
+:END
+
+:BEGIN camera
+
+# CAMERA
+
+CAMERA is a competitive gene set test where the null hypothesis is that the genes in the set do not have more extreme t-statistics than those outside of the set.
+This also estimates and accounts for the variance inflation due to correlations between genes.
+
+```{r}
+res.camera <- limma::camera(
+    v,
+    index=indices,
+    design=design,
+    contrast=con<%= CAMERA_ARGS %>
+)
+```
+
+We perform some reformatting for consistency.
+
+```{r}
+res.camera <- S4Vectors::DataFrame(res.camera)
+res.camera <- res.camera[match(names(sets), rownames(res.camera)),]
+rownames(res.camera) <- names(sets)
+colnames(res.camera)[colnames(res.camera) == "NGenes"] <- "NumGenes"
+res.camera$NumGenes <- as.integer(res.camera$NumGenes)
+res.camera$NumGenes[is.na(res.camera$NumGenes)] <- 0L
+res.camera$FDR <- p.adjust(res.camera$PValue, method='BH')
+:BEGIN add-annotation
+res.camera <- cbind(set.anno, res.camera)
+:END
+```
+
+We examine the top hits:
+
+```{r}
+res.camera[head(order(res.camera$PValue), 10),]
+```
+
+We add it to the output list.
+
+```{r}
+all.results[["camera"]] <- res.camera
+```
+
+Also saving it to file.
+
+```{r <%= SAVING_CHUNK_NAME %>}
+camera.meta <- list(
+    title=paste(<%= CONTRAST_NAME %>, "(CAMERA)"),
+    authors=<%= RAW_AUTHOR %>,
+    differential_gene_set_test=list(
+:BEGIN diff-metadata
+:END 
+:BEGIN subset-metadata
+        subset=subset.meta,
+:END 
+        method="camera"
+    )
+)
+
+augere.core::saveResult(
+    res.camera,
+    file.path(result.dir, "camera"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, camera.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=camera.meta
+:END
+)
+```
+
+:END
+
+:BEGIN romer
+
+# ROMER
+
+ROMER is a competitive gene set test where the null hypothesis is that the average t-statistic of genes within the set has greater magnitude than that outside the set.
+This uses rotation of the residuals to simulate a null distribution in a manner that preserves the correlation structure between genes for accurate type I error control.
+
+```{r}
+set.seed(<%= SEED %>)
+raw <- limma::romer(v, index=indices, design=design, contrast=con<%= ROMER_ARGS %>)
+```
+
+```{r}
+res.romer <- S4Vectors::DataFrame(raw)
+res.romer <- res.romer[match(names(sets), rownames(res.romer)),]
+rownames(res.romer) <- names(sets)
+colnames(res.romer)[colnames(res.romer) == "NGenes"] <- "NumGenes"
+res.romer$NumGenes <- as.integer(res.romer$NumGenes)
+res.romer$NumGenes[is.na(res.romer$NumGenes)] <- 0L
+res.romer$PValue <- pmin(1, 2*pmin(raw[,'Up'], raw[,'Down']))
+res.romer$FDR <- p.adjust(res.romer$PValue, method='BH')
+res.romer$Direction <- ifelse(unname(raw[,"Up"] < raw[,"Down"]), "up", "down")
+:BEGIN add-annotation
+res.romer <- cbind(common.anno, res.romer)
+:END
+```
+
+We examine the top hits:
+
+```{r}
+res.romer[head(order(res.romer$PValue), 10),]
+```
+
+We add it to the output list.
+
+```{r}
+all.results[["romer"]] <- res.romer
+```
+
+Also saving it to file.
+
+```{r <%= SAVING_CHUNK_NAME %>}
+romer.meta <- list(
+    title=paste(<%= CONTRAST_NAME %>, "(ROMER)"),
+    authors=<%= RAW_AUTHOR %>,
+    differential_gene_set_test=list(
+:BEGIN diff-metadata
+:END 
+:BEGIN subset-metadata
+        subset=subset.meta,
+:END 
+        method="romer"
+    )
+)
+
+augere.core::saveResult(
+    res.romer,
+    file.path(result.dir, "romer"),
+:BEGIN merge-metadata
+    metadata=c(common.meta, romer.meta)
+:END
+:BEGIN no-merge-metadata
+    metadata=romer.meta
+:END
+)
+```
+
+:END
+
+# Session information {-}
+
+```{r}
+sessionInfo()
+```
+
