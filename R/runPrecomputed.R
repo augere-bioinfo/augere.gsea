@@ -1,4 +1,4 @@
-#' Run GSEA on precomputed statistics
+#' GSEA on precomputed statistics
 #'
 #' Run gene set enrichment analyses on precomputed statistics, usually from differential expression analyses.
 #' This uses competitive gene set tests where the enrichment of \dQuote{interesting} genes within the set must be greater than that outside of the set.
@@ -76,8 +76,8 @@
 #' Specifically, this is used to sample seeds to insert into \code{\link{set.seed}} statements within the report.
 #'
 #' @return
-#' A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}, containing the commands used for the statistic-based GSEA.
-#' This serves as a record of the analysis as well as providing a basis for further customization.
+#' A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 
+#' This contains all commmands used to reproduce the analysis. 
 #'
 #' If \code{dry.run=FALSE}, a list of \link[S4Vectors]{DataFrame}s is returned where each DataFrame contains the enrichment results for a \code{method}.
 #' Each row corresponds to a gene set in \code{sets} and is named accordingly.
@@ -121,7 +121,7 @@
 #' )
 #'
 #' output.dir <- tempfile()
-#' results <- runGseaPrecomputed(tab, sets, output=output.dir)
+#' results <- runPrecomputed(tab, sets, output=output.dir)
 #' results$hypergeometric
 #' results$fgsea
 #'
@@ -129,7 +129,7 @@
 #' 
 #' @export
 #' @import augere.core
-runGseaPrecomputed <- function(
+runPrecomputed <- function(
     x,
     sets,
     methods = c("hypergeometric", "goseq", "fgsea", "cameraPR"),
