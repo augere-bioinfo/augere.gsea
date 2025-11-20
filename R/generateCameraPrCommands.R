@@ -38,6 +38,7 @@
 :END
     out <- S4Vectors::DataFrame(out)
     colnames(out)[colnames(out) == \"NGenes\"] <- \"NumGenes\"
+    out$NumGenes <- as.integer(out$NumGenes)
     out$FDR <- p.adjust(out$PValue, method='BH')
     out <- out[match(names(sets), rownames(out)),]
 :BEGIN report-direction 

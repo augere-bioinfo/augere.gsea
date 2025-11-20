@@ -32,7 +32,7 @@ test_that("runGseaPrecomputed works as expected", {
         df <- stats[[meth]]
         expect_s4_class(df, "DFrame")
         expect_identical(rownames(df), names(sets))
-        expect_true(is.numeric(df$NumGenes))
+        expect_type(df$NumGenes, "integer")
         expect_type(df$FDR, "double")
 
         res <- augere.core::readResult(file.path(out, "results", meth))
@@ -117,7 +117,7 @@ test_that("runGseaPrecomputed respects some extra metadata", {
     stats <- runGseaPrecomputed(tab, lsets, methods=all.methods, output.dir=out, annotation="whee", save.results=FALSE, seed=69)
     for (meth in all.methods) {
         df <- stats[[meth]]
-        expect_true(is.numeric(df$NumGenes))
+        expect_type(df$NumGenes, "integer")
         expect_type(df$FDR, "double")
         expect_identical(df$whee, mcols(lsets)$whee)
     }
