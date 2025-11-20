@@ -6,6 +6,10 @@ date: "`r Sys.Date()`"
 output: BiocStyle::html_document
 ---
 
+```{r, echo=FALSE}
+knitr::opts_chunk$set(error=FALSE, warning=FALSE, message=FALSE)
+```
+
 # Loading statistics
 
 We construct the data frame of precomputed statistics for each gene.
@@ -74,6 +78,14 @@ indices <- limma::ids2indices(
 summary(lengths(indices))
 ```
 
+:BEGIN common-annotation
+We extract some annotation to add to each `DataFrame`.
+
+```{r}
+common.anno <- S4Vectors::mcols(sets)[,<%= ANNO_FIELDS %>,drop=FALSE]
+```
+:END
+
 # Preparing output 
 
 We create a list to store the results.
@@ -94,14 +106,6 @@ We some common metadata to add to each result.
 
 ```{r}
 common.meta <- <%= COMMON_METADATA %>
-```
-:END
-
-:BEGIN common-annotation
-We extract some annotation to add to each `DataFrame`.
-
-```{r}
-common.anno <- S4Vectors::mcols(sets)[,<%= ANNO_FIELDS %>,drop=FALSE]
 ```
 :END
 
