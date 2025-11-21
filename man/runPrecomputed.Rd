@@ -83,6 +83,10 @@ It may be unsigned if \code{sign.field} is provided, in which case the signs are
 or if \code{alternative="mixed"}, in which case the signs are ignored by each method.
 Only used for \code{method="geneSetTest"}, \code{"fgsea"} and \code{"cameraPR"}.}
 
+\item{rank.sqrt}{Boolean indicating whether to compute the square root of the \code{rank.field} statistic before restoring the sign with \code{sign.field}. 
+For example, the F-statistic will be converted to a t-statistic while the likelihoiod ratio will be converted to a Z-score.
+Only used for \code{method="geneSetTest"}, \code{"fgsea"} and \code{"cameraPR"}.}
+
 \item{sign.field}{String specifying the column of \code{x} containing a signed effect size, e.g., the log-fold change.
 This is used to restore the sign to unsigned test statistics in \code{rank.field}.
 It will also be used to define up- or down-regulated genes in \code{method="hypergeometric"} and \code{"goseq"} when \code{alternative} is not \code{"mixed"}.}
@@ -116,10 +120,6 @@ This generates the Rmarkdown report in \code{output.dir} but does not execute th
 
 \item{seed}{Integer containing the seed for random number generation.
 Specifically, this is used to sample seeds to insert into \code{\link{set.seed}} statements within the report.}
-
-\item{use.sqrt}{Boolean indicating whether to compute the square root of the \code{rank.field} statistic before restoring the sign with \code{sign.field}. 
-For example, the F-statistic will be converted to a t-statistic while the likelihoiod ratio will be converted to a Z-score.
-Only used for \code{method="geneSetTest"}, \code{"fgsea"} and \code{"cameraPR"}.}
 }
 \value{
 A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 

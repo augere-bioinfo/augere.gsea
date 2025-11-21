@@ -53,7 +53,7 @@
 #' @param sign.field String specifying the column of \code{x} containing a signed effect size, e.g., the log-fold change.
 #' This is used to restore the sign to unsigned test statistics in \code{rank.field}.
 #' It will also be used to define up- or down-regulated genes in \code{method="hypergeometric"} and \code{"goseq"} when \code{alternative} is not \code{"mixed"}.
-#' @param use.sqrt Boolean indicating whether to compute the square root of the \code{rank.field} statistic before restoring the sign with \code{sign.field}. 
+#' @param rank.sqrt Boolean indicating whether to compute the square root of the \code{rank.field} statistic before restoring the sign with \code{sign.field}. 
 #' For example, the F-statistic will be converted to a t-statistic while the likelihoiod ratio will be converted to a Z-score.
 #' Only used for \code{method="geneSetTest"}, \code{"fgsea"} and \code{"cameraPR"}.
 #' @param goseq.bias String specifying the column of \code{x} containing the per-gene detection bias.
@@ -174,6 +174,7 @@ runPrecomputed <- function(
     parsed[["setup-tab"]] <- processInputCommands(x, name="tab")
     parsed[["setup-sets"]] <- processInputCommands(sets, name="sets")
 
+    alternative <- match.arg(alternative)
     replacements <- list(
         ALL_STAT_NAMES=deparseToString(c(signif.field, rank.field, sign.field)),
         AUTHOR=paste(sprintf("  - %s", author), collapse="\n"),
@@ -223,7 +224,6 @@ runPrecomputed <- function(
 
     methods <- match.arg(methods, c("hypergeometric", "goseq", "geneSetTest", "cameraPR", "fgsea"), several.ok=TRUE)
     save.chunk.names <- character()
-    alternative <- match.arg(alternative)
 
     process_common <- function(y) {
         if (is.null(annotation)) {

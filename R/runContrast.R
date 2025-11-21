@@ -75,7 +75,7 @@
 #' list.files(output.dir, recursive=TRUE)
 #' 
 #' @export
-#' @import augere.core augere.de
+#' @import augere.core augere.de limma
 runContrast <- function(
     x,
     sets, 
