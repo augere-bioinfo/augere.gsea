@@ -22,7 +22,8 @@ Suggests:
     goseq,
     fgsea,
     SummarizedExperiment,
-    jsonlite
+    org.Hs.eg.db,
+    GO.db
 VignetteBuilder: knitr    
 RoxygenNote: 7.3.3
 Encoding: UTF-8
