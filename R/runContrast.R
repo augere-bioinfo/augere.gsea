@@ -133,7 +133,7 @@ runContrast <- function(
     }
 
     if (!is.null(design) && !is.null(contrast)) {
-        parsed[["create-design"]] <- processCustomDesignMatrix(design=design)
+        parsed[["create-design"]] <- processCustomDesignMatrix(design=design, se.name="se")
         contrast.info <- processCustomContrasts(contrast)
         replacements$FILTER_ARGS <- "design=design"
         parsed[["subset-group"]] <- NULL
@@ -218,8 +218,8 @@ runContrast <- function(
         parsed[["create-common-metadata"]] <- NULL
     }
 
-    meta.cmds <- processContrastMetadata(contrast.info)
-    meta.cmds[-1] <- paste0("    ", meta.cmds[-1])
+    meta.cmds <- processContrastMetadata(contrast.info[[1]])
+    meta.cmds[-1] <- paste0(strrep(" ", 8), meta.cmds[-1])
     meta.cmds[1] <- paste0("    contrast=", meta.cmds[1])
     meta.cmds[length(meta.cmds)] <- paste0(meta.cmds[length(meta.cmds)], ",")
 

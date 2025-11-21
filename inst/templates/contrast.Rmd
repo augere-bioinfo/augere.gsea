@@ -187,7 +187,7 @@ summary(lengths(indices))
 We extract some annotation to attach to the output `DataFrame`s.
 
 ```{r}
-set.anno <- S4Vectors::mcols(sets)[,<%= ANNO_FIELDS %>,drop=FALSE]
+common.anno <- S4Vectors::mcols(sets)[,<%= ANNO_FIELDS %>,drop=FALSE]
 ```
 :END
 
@@ -387,7 +387,7 @@ res.camera$NumGenes <- as.integer(res.camera$NumGenes)
 res.camera$NumGenes[is.na(res.camera$NumGenes)] <- 0L
 res.camera$FDR <- p.adjust(res.camera$PValue, method='BH')
 :BEGIN add-annotation
-res.camera <- cbind(set.anno, res.camera)
+res.camera <- cbind(common.anno, res.camera)
 :END
 ```
 

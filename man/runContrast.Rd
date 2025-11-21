@@ -152,11 +152,11 @@ x <- augere.de::loadExampleDataset()
 all.genes <- rownames(x)
 
 sets <- list(
-    A = sample(all.genes, 100),
-    B = sample(all.genes, 500),
-    C = sample(all.genes, 200),
-    D = sample(all.genes, 20),
-    E = sample(all.genes, 10)
+    A = sample(all.genes, 92),
+    B = sample(all.genes, 212),
+    C = sample(all.genes, 12),
+    D = sample(all.genes, 38),
+    E = sample(all.genes, 55)
 )
 
 output.dir <- tempfile()
