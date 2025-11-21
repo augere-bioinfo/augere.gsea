@@ -58,7 +58,14 @@ This is done by calling the `runPrecomputed()` function, which performs a variet
 ```{r, fig.show="hide"}
 library(augere.gsea)
 output.gsea <- tempfile()
-res.gsea <- runPrecomputed(res.de$results[[1]], sets, output.dir=output.gsea) 
+res.gsea <- runPrecomputed(
+    res.de$results[[1]],
+    sets,
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
+    output.dir=output.gsea
+) 
 res.gsea
 ```
 
@@ -95,6 +102,9 @@ res.up <- runPrecomputed(
     res.de$results[[1]],
     sets,
     alternative="up",
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
     sign.field="LogFC", # supplying the sign for each gene. 
     output.dir=output.up,
     save.results=FALSE # skipping the save, to reduce run-time.
@@ -113,6 +123,9 @@ res.either <- runPrecomputed(
     res.de$results[[1]],
     sets,
     alternative="either",
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
     sign.field="LogFC",
     output.dir=output.either,
     save.results=FALSE
@@ -133,9 +146,11 @@ output.up2 <- tempfile()
 res.up2 <- runPrecomputed(
     res.de2$results[[1]],
     sets,
+    signif.field="FDR",
+    signif.threshold=0.05,
     rank.field="F",
-    sign.field="LogFC", # using this to restore the sign to the test statistic.
     rank.sqrt=TRUE, # square-rooting the F statistic to mimic a t-test.
+    sign.field="LogFC", # using this to restore the sign to the test statistic.
     alternative="up",
     output.dir=output.up2,
     save.results=FALSE,
@@ -150,7 +165,7 @@ Of course, these considerations are unnecessary for the default `alternative="mi
 `runContrast()` performs differential gene set tests that compare the expression values across all genes in the set.
 This means that we need to supply the counts themselves along with the design and contrast:
 
-```{r}
+```{r, fig.show="hide"}
 output.dgst <- tempfile()
 res.dgst <- runContrast(
     se,
@@ -185,7 +200,7 @@ To illustrate, consider a simple experiment where we treat a cell line with a dr
 This means that many of the options in `r BiocStyle::Biocpkg("augere.de")`'s `runVoom()` can also be used here.
 For example, if we want to supply a custom design matrix:
 
-```{r}
+```{r, fig.show="hide"}
 output.dgst2 <- tempfile()
 res.dgst2 <- runContrast(
     se,
@@ -209,6 +224,9 @@ output.dry <- tempfile()
 runPrecomputed(
     res.de$results[[1]],
     sets,
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
     output.dir=output.dry,
     dry.run=TRUE
 )
@@ -227,7 +245,7 @@ cat(lines[has.stop + (-5):5], sep="\n")
 
 If we know how the object was generated, we can pass this information to `runPrecomputed()`:
 
-```{r}
+```{r, fig.show="hide"}
 runPrecomputed(
     wrapInput(res.de$results[[1]], commands=sprintf(
         # Pulling the result out of the directory saved by runVoom().
@@ -238,6 +256,9 @@ library(org.Hs.eg.db)
 sets <- select(org.Hs.eg.db, keys=keys(org.Hs.eg.db, 'GO'), keytype='GO', columns='ENSEMBL')
 sets <- split(sets$ENSEMBL, sets$GO)
 head(sets, 100)"), 
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
     output.dir=output.dry,
     dry.run=TRUE
 )
@@ -269,6 +290,9 @@ output.anno.dir <- tempfile()
 res.anno <- runPrecomputed(
     res.de$results[[1]],
     annotated.sets,
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
     save.results=FALSE,
     annotation="name",
     output.dir=output.anno.dir

@@ -7,11 +7,11 @@
 runPrecomputed(
   x,
   sets,
+  signif.field,
+  signif.threshold,
+  rank.field,
   methods = c("hypergeometric", "goseq", "fgsea", "cameraPR"),
   alternative = c("mixed", "up", "down", "either"),
-  signif.field = "FDR",
-  signif.threshold = 0.05,
-  rank.field = "t",
   rank.sqrt = FALSE,
   sign.field = NULL,
   goseq.bias = "AveExpr",
@@ -43,6 +43,19 @@ Each vector represents a gene set and contains the identifiers for genes in that
 Identifiers should be consistent with the row names of \code{x}.
 The list may also be named with the names of the sets.}
 
+\item{signif.field}{String specifying the column of \code{x} to define significant genes, typically the adjusted p-value.
+Only used for \code{method="hypergeometric"} and \code{"goseq"}.}
+
+\item{signif.threshold}{Number specifying the upper threshold for significance to apply to the statistics from \code{signif.field}.
+All genes with lower statistics are considered to be significant.
+Only used for \code{method="hypergeometric"} and \code{"goseq"}.}
+
+\item{rank.field}{String specifying the column of \code{x} containing test statistics for ranking, e.g., t-statistics, Z-scores.
+This is generally expected to be signed such that the values with the largest magnitude are most significant and the sign represents some kind of directionality.
+It may be unsigned if \code{sign.field} is provided, in which case the signs are used to convert the test statistics back to signed values;
+or if \code{alternative="mixed"}, in which case the signs are ignored by each method.
+Only used for \code{method="geneSetTest"}, \code{"fgsea"} and \code{"cameraPR"}.}
+
 \item{methods}{Character vector specifying the gene set testing methods to use.
 This can be any number of the following:
 \itemize{
@@ -69,19 +82,6 @@ This should be one of:
 Specifically, each gene set is tested separately for enrichment of up- and down-regulated genes, and the results are combined into a single p-value.
 This differs from \code{"mixed"}, which does not consider the sign at all and only cares about enrichment of significant genes of any direction in each set.
 }}
-
-\item{signif.field}{String specifying the column of \code{x} to define significant genes, typically the adjusted p-value.
-Only used for \code{method="hypergeometric"} and \code{"goseq"}.}
-
-\item{signif.threshold}{Number specifying the upper threshold for significance to apply to the statistics from \code{signif.field}.
-All genes with lower statistics are considered to be significant.
-Only used for \code{method="hypergeometric"} and \code{"goseq"}.}
-
-\item{rank.field}{String specifying the column of \code{x} containing test statistics for ranking, e.g., t-statistics, Z-scores.
-This is generally expected to be signed such that the values with the largest magnitude are most significant and the sign represents some kind of directionality.
-It may be unsigned if \code{sign.field} is provided, in which case the signs are used to convert the test statistics back to signed values;
-or if \code{alternative="mixed"}, in which case the signs are ignored by each method.
-Only used for \code{method="geneSetTest"}, \code{"fgsea"} and \code{"cameraPR"}.}
 
 \item{rank.sqrt}{Boolean indicating whether to compute the square root of the \code{rank.field} statistic before restoring the sign with \code{sign.field}. 
 For example, the F-statistic will be converted to a t-statistic while the likelihoiod ratio will be converted to a Z-score.
@@ -169,7 +169,14 @@ sets <- list(
 )
 
 output.dir <- tempfile()
-results <- runPrecomputed(tab, sets, output=output.dir)
+results <- runPrecomputed(
+    tab,
+    sets,
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
+    output=output.dir
+)
 results$hypergeometric
 results$fgsea
 

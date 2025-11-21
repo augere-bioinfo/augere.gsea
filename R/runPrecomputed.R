@@ -121,7 +121,14 @@
 #' )
 #'
 #' output.dir <- tempfile()
-#' results <- runPrecomputed(tab, sets, output=output.dir)
+#' results <- runPrecomputed(
+#'     tab,
+#'     sets,
+#'     signif.field="FDR",
+#'     signif.threshold=0.05,
+#'     rank.field="t",
+#'     output=output.dir
+#' )
 #' results$hypergeometric
 #' results$fgsea
 #'
@@ -132,11 +139,11 @@
 runPrecomputed <- function(
     x,
     sets,
+    signif.field, 
+    signif.threshold, 
+    rank.field,
     methods = c("hypergeometric", "goseq", "fgsea", "cameraPR"),
     alternative = c("mixed", "up", "down", "either"),
-    signif.field = "FDR",
-    signif.threshold = 0.05, 
-    rank.field = "t",
     rank.sqrt = FALSE,
     sign.field = NULL,
     goseq.bias = "AveExpr",
@@ -176,27 +183,38 @@ runPrecomputed <- function(
 
     alternative <- match.arg(alternative)
     replacements <- list(
-        ALL_STAT_NAMES=deparseToString(c(signif.field, rank.field, sign.field)),
         AUTHOR=paste(sprintf("  - %s", author), collapse="\n"),
         RAW_AUTHOR=deparseToString(as.list(author)),
         SIGN_FIELD=deparseToString(sign.field),
         ALTERNATIVE=deparseToString(alternative)
     )
 
-    if (!is.null(signif.field)) {
+    fields.in.use <- character(0)
+    if (any(c("hypergeometric", "goseq") %in% methods)) {
         replacements$SIGNIF_FIELD <- deparseToString(signif.field)
         replacements$SIGNIF_THRESHOLD <- deparseToString(signif.threshold)
+        fields.in.use <- c(fields.in.use, signif.field)
     } else {
         parsed[["setup-signif"]] <- NULL
     }
 
-    if (!is.null(rank.field)) {
+    if (any(c("fgsea", "cameraPR", "romer") %in% methods)) {
         replacements$RANK_FIELD <- deparseToString(rank.field)
+        fields.in.use <- c(fields.in.use, rank.field)
     } else {
         parsed[["setup-rank"]] <- NULL
     }
 
-    if (!is.null(sign.field)) {
+    # We use the sign for the rank-based methods if it's provided, otherwise we assume that the rank stat is already sufficiently signed.
+    use.sign <- any(c("fgsea", "cameraPR", "romer") %in% methods) && !is.null(sign.field)
+    if (any(c("hypergeometric", "goseq") %in% methods) && alternative != "mixed") {
+        # For hypergeometric/goseq, we actually need the sign if we're not testing the mixed alternative hypothesis.
+        if (is.null(sign.field)) {
+            stop("'sign.field' should be supplied when 'alternative=\"", alternative, "\"")
+        }
+        use.sign <- TRUE
+    }
+    if (use.sign) {
         replacements$SIGN_FIELD <- deparseToString(sign.field)
         if (rank.sqrt) {
             replacements$SANITIZER <- "sqrt(abs(rank.stat))"
@@ -204,10 +222,13 @@ runPrecomputed <- function(
             parsed[["sqrt-txt"]] <- NULL
             replacements$SANITIZER <- "abs(rank.stat)"
         }
+        fields.in.use <- c(fields.in.use, sign.field)
     } else {
         parsed[["re-sign"]] <- NULL
         parsed[["setup-sign"]] <- NULL
     }
+
+    replacements$ALL_STAT_NAMES <- deparseToString(fields.in.use)
 
     merge.metadata <- !is.null(metadata)
     if (merge.metadata) {
@@ -235,12 +256,6 @@ runPrecomputed <- function(
             y[["no-merge-metadata"]] <- NULL
         }
         y
-    }
-
-    if ("hypergeometric" %in% methods || "goseq" %in% methods) {
-        if (alternative != "mixed" && is.null(sign.field)) {
-            stop("'sign.field' should be supplied when 'alternative=\"", alternative, "\"")
-        }
     }
 
     if ("hypergeometric" %in% methods) {

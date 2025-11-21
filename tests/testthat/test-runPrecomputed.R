@@ -22,7 +22,16 @@ sets <- list(
 # Vanilla unsigned run to get started.
 all.methods <- c("hypergeometric", "goseq", "geneSetTest", "fgsea", "cameraPR")
 out <- tempfile()
-stats <- runPrecomputed(tab, sets, methods=all.methods, output.dir=out, seed=42)
+stats <- runPrecomputed(
+    tab,
+    sets,
+    signif.field="FDR",
+    signif.threshold=0.05,
+    rank.field="t",
+    methods=all.methods,
+    output.dir=out,
+    seed=42
+)
 
 test_that("runPrecomputed works as expected", {
     expect_identical(names(stats), all.methods)
@@ -49,7 +58,18 @@ test_that("runPrecomputed works with the various sign options", {
 
     # Adding some signedness.
     out2 <- tempfile()
-    abs.stats <- runPrecomputed(tab2, sets, methods=all.methods, rank.field="t.abs", sign.field="LogFC", output.dir=out2, save.results=FALSE, seed=42)
+    abs.stats <- runPrecomputed(
+        tab2,
+        sets,
+        methods=all.methods,
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t.abs",
+        sign.field="LogFC",
+        output.dir=out2,
+        save.results=FALSE,
+        seed=42
+    )
     for (meth in all.methods) {
         expect_equal(stats[[meth]], abs.stats[[meth]])
     }
@@ -57,7 +77,19 @@ test_that("runPrecomputed works with the various sign options", {
     # With some square rooting.
     out2 <- tempfile()
     tab2$F <- tab2$t^2
-    sqrt.stats <- runPrecomputed(tab2, sets, methods=all.methods, rank.field="F", sign.field="LogFC", rank.sqrt=TRUE, output.dir=out2, save.results=FALSE, seed=42)
+    sqrt.stats <- runPrecomputed(
+        tab2,
+        sets,
+        methods=all.methods,
+        rank.field="F",
+        signif.field="FDR",
+        signif.threshold=0.05,
+        sign.field="LogFC",
+        rank.sqrt=TRUE,
+        output.dir=out2,
+        save.results=FALSE,
+        seed=42
+    )
     for (meth in all.methods) {
         expect_equal(stats[[meth]], sqrt.stats[[meth]])
     }
@@ -65,22 +97,56 @@ test_that("runPrecomputed works with the various sign options", {
 
 test_that("runPrecomputed works with different alternatives", {
     out2 <- tempfile()
-    expect_error(runPrecomputed(tab, sets, alternative="up", output.dir=out2, save.results=FALSE, seed=42), "'sign.field' should be supplied")
+    expect_error(runPrecomputed(
+        tab,
+        sets,
+        methods=all.methods,
+        alternative="up", 
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        output.dir=out2,
+        save.results=FALSE,
+        seed=42
+    ), "'sign.field' should be supplied")
 
     out2 <- tempfile()
-    rank.only <- runPrecomputed(tab, sets, alternative="up", methods=c("fgsea", "cameraPR"), output.dir=out2, seed=42)
-    expect_identical(names(rank.only), c("fgsea", "cameraPR"))
-    for (n in names(rank.only)) {
+    up.only <- runPrecomputed(
+        tab,
+        sets, 
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        sign.field="t",
+        methods=all.methods,
+        alternative="up", 
+        output.dir=out2, 
+        seed=42
+    )
+    expect_identical(names(up.only), all.methods)
+    for (n in names(up.only)) {
         res <- augere.core::readResult(file.path(out2, "results", n))
         expect_identical(res$metadata$precomputed_gene_set_enrichment$alternative, "up")
     }
 
     out2 <- tempfile()
-    hyp.only <- runPrecomputed(tab, sets, alternative="down", sign.field="t", methods=c("hypergeometric", "goseq"), output.dir=out2, seed=42)
-    expect_identical(names(hyp.only), c("hypergeometric", "goseq"))
-    for (n in names(hyp.only)) {
+    either <- runPrecomputed(
+        tab,
+        sets, 
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        sign.field="t",
+        alternative="either",
+        methods=all.methods,
+        output.dir=out2,
+        seed=42
+    )
+    expect_identical(names(either), all.methods)
+    for (n in names(either)) {
+        expect_type(either[[n]]$Direction, "character")
         res <- augere.core::readResult(file.path(out2, "results", n))
-        expect_identical(res$metadata$precomputed_gene_set_enrichment$alternative, "down")
+        expect_identical(res$metadata$precomputed_gene_set_enrichment$alternative, "either")
     }
 })
 
@@ -88,7 +154,16 @@ test_that("runPrecomputed works with only a subset of methods", {
     # No need for rank.
     simple.out <- tempfile()
     simple.methods <- c("hypergeometric", "goseq")
-    simple.stats <- runPrecomputed(tab, sets, methods=simple.methods, rank.field=NULL, output.dir=simple.out, save.results=FALSE, seed=42)
+    simple.stats <- runPrecomputed(
+        tab,
+        sets,
+        methods=simple.methods, 
+        signif.field="FDR",
+        signif.threshold=0.05,
+        output.dir=simple.out,
+        save.results=FALSE,
+        seed=42
+    )
     expect_identical(names(simple.stats), simple.methods)
     for (meth in simple.methods) {
         expect_equal(stats[[meth]], simple.stats[[meth]])
@@ -97,7 +172,15 @@ test_that("runPrecomputed works with only a subset of methods", {
     # Now rank-only.
     ro.out <- tempfile()
     ro.methods <- setdiff(all.methods, simple.methods)
-    ro.stats <- runPrecomputed(tab, sets, methods=ro.methods, signif.field=NULL, output.dir=ro.out, save.results=FALSE, seed=42)
+    ro.stats <- runPrecomputed(
+        tab,
+        sets,
+        methods=ro.methods,
+        rank.field="t",
+        output.dir=ro.out,
+        save.results=FALSE,
+        seed=42
+    )
     expect_identical(names(ro.stats), ro.methods)
     for (meth in ro.methods) { # fortunately the seed is still consistent.
         expect_equal(stats[[meth]], ro.stats[[meth]])
@@ -107,14 +190,35 @@ test_that("runPrecomputed works with only a subset of methods", {
 test_that("runPrecomputed works with the different output options", {
     # No saving.
     nosave.out <- tempfile()
-    nosave.stats <- runPrecomputed(tab, sets, methods=all.methods, save.results=FALSE, output.dir=nosave.out, seed=42)
+    nosave.stats <- runPrecomputed(
+        tab,
+        sets,
+        methods=all.methods,
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        save.results=FALSE,
+        output.dir=nosave.out,
+        seed=42
+    )
     expect_equal(stats, nosave.stats)
     expect_true(file.exists(file.path(nosave.out, "report.Rmd")))
     expect_false(file.exists(file.path(nosave.out, "results")))
 
     # Dry run only.
     dry.out <- tempfile()
-    dry.stats <- runPrecomputed(tab, sets, methods=all.methods, save.results=FALSE, dry.run=TRUE, output.dir=dry.out, seed=42)
+    dry.stats <- runPrecomputed(
+        tab,
+        sets,
+        methods=all.methods,
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        save.results=FALSE,
+        dry.run=TRUE,
+        output.dir=dry.out,
+        seed=42
+    )
     expect_null(dry.stats)
     expect_true(file.exists(file.path(dry.out, "report.Rmd")))
     expect_false(file.exists(file.path(dry.out, "results")))
@@ -123,7 +227,17 @@ test_that("runPrecomputed works with the different output options", {
 test_that("runPrecomputed respects some extra metadata", {
     # Metadata to write to disk. 
     common.out <- tempfile()
-    common.stats <- runPrecomputed(tab, sets, methods=all.methods, output.dir=common.out, metadata=list(foo=1, bar=TRUE), seed=69)
+    common.stats <- runPrecomputed(
+        tab,
+        sets,
+        methods=all.methods,
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        output.dir=common.out,
+        metadata=list(foo=1, bar=TRUE),
+        seed=69
+    )
     for (meth in all.methods) {
         res <- augere.core::readResult(file.path(common.out, "results", meth))
         expect_identical(res$metadata$precomputed_gene_set_enrichment$method, meth)
@@ -135,7 +249,18 @@ test_that("runPrecomputed respects some extra metadata", {
     out <- tempfile()
     lsets <- List(sets)
     mcols(lsets)$whee <- runif(length(lsets))
-    stats <- runPrecomputed(tab, lsets, methods=all.methods, output.dir=out, annotation="whee", save.results=FALSE, seed=69)
+    stats <- runPrecomputed(
+        tab,
+        lsets,
+        methods=all.methods,
+        signif.field="FDR",
+        signif.threshold=0.05,
+        rank.field="t",
+        output.dir=out,
+        annotation="whee",
+        save.results=FALSE,
+        seed=69
+    )
     for (meth in all.methods) {
         df <- stats[[meth]]
         expect_type(df$NumGenes, "integer")
