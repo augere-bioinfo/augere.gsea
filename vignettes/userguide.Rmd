@@ -1,0 +1,285 @@
+---
+title: Gene set enrichment pipelines
+author:
+- name: Aaron Lun
+  emaie: infinite.monkeys.with.keyboards@gmail.com
+date: "Revised: November 17, 2025"
+output: BiocStyle::html_document
+package: augere.gsea
+vignette: >
+  %\VignetteIndexEntry{Gene set analyses}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo=FALSE, results="hide"}
+knitr::opts_chunk$set(error=FALSE, message=FALSE, warning=FALSE)
+self <- BiocStyle::Biocpkg("augere.gsea")
+```
+
+# Overview
+
+`r self` implements **augere** pipeline functions for gene set enrichment analyses (GSEA). 
+Each analysis pipeline creates a self-contained Rmarkdown report that documents each step in the DE analysis,
+after which it compiles the report and returns the analysis results to the user in the current R session.
+We can then inspect the report to determine exactly how the analysis was performed. 
+We can also modify the report to customize the analysis beyond the options provided by the pipeline function.
+
+# Quick start
+
+Let's demonstrate on a dataset derived from the `r BiocStyle::Biocpkg("airway")` package.
+First, we perform a differential expression analysis with `r BiocStyle::Biocpkg("edgeR")`:
+
+```{r, fig.show="hide"}
+library(augere.de)
+se <- loadExampleDataset()
+
+# Testing for DE between 'trt' and 'untrt' in the 'dex' grouping factor.
+output.de <- tempfile()
+res.de <- runVoom(se, group="dex", comparisons=c("trt", "untrt"), output.dir=output.de)
+res.de$results[[1]]
+```
+
+We then choose the collection of gene sets to test.
+Any gene sets can be used as long as they share the same gene identifiers as those in the row names of the DE table. 
+Here, we'll use the first few GO terms from `r BiocStyle::Biocpkg("org.Hs.eg.db")`: 
+
+```{r}
+library(org.Hs.eg.db)
+sets <- select(org.Hs.eg.db, keys=keys(org.Hs.eg.db, "GO"), keytype="GO", columns="ENSEMBL")
+sets <- split(sets$ENSEMBL, sets$GO)
+sets <- head(sets, 100) # to cut down on vignette runtime.
+length(sets)
+```
+
+We use the pre-computed DE results to check each gene set for significant enrichment of significant genes.
+This is done by calling the `runPrecomputed()` function, which performs a variety of different tests to test for enrichment:
+
+```{r, fig.show="hide"}
+library(augere.gsea)
+output.gsea <- tempfile()
+res.gsea <- runPrecomputed(res.de$results[[1]], sets, output.dir=output.gsea) 
+res.gsea
+```
+
+Like its counterparts from `r BiocStyle::Biocpkg("augere.de")`,
+`runPrecomputed()` also generates an Rmarkdown report containing (almost) all of the steps required to reproduce the analysis.
+Let's have a look at it:
+
+```{r}
+fname <- file.path(output.gsea, "report.Rmd")
+cat(head(readLines(fname), 50), sep="\n")
+```
+
+The function will also save the results to file inside a `results` subdirectory, which can be loaded back into the session using the `readResult()` function:
+
+```{r}
+reloaded <- readResult(file.path(output.gsea, "results", "hypergeometric"))
+
+# The result itself:
+reloaded$x
+
+# Along with some metadata:
+str(reloaded$metadata)
+```
+
+# Considering directionality
+
+By default, the alternative hypothesis in `runPrecomputed()` is non-directional, i.e., we test each set for over-representation of any significant genes. 
+However, we can also consider the sign of the differential expression of the genes.
+For example, if we are only interested in significant genes that are upregulated in `trt` versus `untrt`, we could do:
+
+```{r, fig.show="hide"}
+output.up <- tempfile()
+res.up <- runPrecomputed(
+    res.de$results[[1]],
+    sets,
+    alternative="up",
+    sign.field="LogFC", # supplying the sign for each gene. 
+    output.dir=output.up,
+    save.results=FALSE # skipping the save, to reduce run-time.
+)
+res.up$hypergeometric
+```
+
+Alternatively, we can test for sets that are overrepresented in genes changing in either direction.
+This adds an extra `Direction` field to the result data frames, specifying the net direction in which the genes are changing within the set.
+The "either" approach is subtly different from the default of "mixed";
+the latter doesn't care about direction at all, whereas the former tests both directions and reports the more significant one.
+
+```{r, fig.show="hide"}
+output.either <- tempfile()
+res.either <- runPrecomputed(
+    res.de$results[[1]],
+    sets,
+    alternative="either",
+    sign.field="LogFC",
+    output.dir=output.either,
+    save.results=FALSE
+)
+res.either$hypergeometric
+```
+
+In some situations, the test statistic from the DE analysis is unsigned because it is a squared representation of a signed test statistic.
+For example, the quasi-likelihood framework of `r BiocStyle::Biocpkg("edgeR")` reports F-statistics that are always non-negative.
+These are converted back to signed statistics by taking the square root and multiplying by the sign of the log-fold change, effectively mimicking a t-statistic.
+
+```{r, fig.show="hide"}
+output.de2 <- tempfile()
+res.de2 <- runEdgeR(se, group="dex", comparisons=c("trt", "untrt"), output.dir=output.de2)
+res.de2$results[[1]]
+
+output.up2 <- tempfile()
+res.up2 <- runPrecomputed(
+    res.de2$results[[1]],
+    sets,
+    rank.field="F",
+    sign.field="LogFC", # using this to restore the sign to the test statistic.
+    rank.sqrt=TRUE, # square-rooting the F statistic to mimic a t-test.
+    alternative="up",
+    output.dir=output.up2,
+    save.results=FALSE,
+)
+res.up2$hypergeometric
+```
+
+Of course, these considerations are unnecessary for the default `alternative="mixed"`, where the sign is ignored anyway.
+
+# Differential gene set tests
+
+`runContrast()` performs differential gene set tests that compare the expression values across all genes in the set.
+This means that we need to supply the counts themselves along with the design and contrast:
+
+```{r}
+output.dgst <- tempfile()
+res.dgst <- runContrast(
+    se,
+    sets,
+    group="dex",
+    comparison=c("trt", "untrt"),
+    save.results=FALSE,
+    output.dir=output.dgst
+) 
+res.dgst
+```
+
+This returns the same type of output as `runPrecomputed()` but using different tests, i.e., ROAST, `fry`, CAMERA, ROMER.
+These tests typically provide more accurate type I error control than their pre-computed counterparts, 
+as the former can use the expression values to account for the correlations between genes.
+This avoids the assumption of independent genes that is commonly made by the pre-computed tests.
+
+Some of the `runContrast()` tests (namely, ROAST and `fry()`) are "self-contained" tests, where the null hypothesis is that none of the genes in the set are DE. 
+This differs from the other "competitive" tests (CAMERA, ROMER and those in `runPrecomputed()`), 
+where the null hypothesis is that there are no more/stronger DE genes in the set compared to those outside of the set.
+These two categories of tests answer different questions and must be chosen accordingly.
+To illustrate, consider a simple experiment where we treat a cell line with a drug, causing many pathways to be activated.
+
+- If we want to know whether the treatment causes a significant change in behavior of a pathway, we would use a self-contained test.
+  This is most appropriate as the test for each set is not affected by the behavior of genes outside of the set (hence the name).
+  In particular, the fact that one pathway exhibits changes should not be diminished by stronger changes in unrelated pathways.
+- If we want to find the strongest effects of the treatment, we would use competitive tests.
+  As the name suggests, the presence of pathways with more/stronger changes will reduce the significance of other pathways.
+  This allows us to focus on the strongest pathways when interpreting the results.
+
+`runContrast()` effectively does a `voom()` analysis before applying the relevant tests.
+This means that many of the options in `r BiocStyle::Biocpkg("augere.de")`'s `runVoom()` can also be used here.
+For example, if we want to supply a custom design matrix:
+
+```{r}
+output.dgst2 <- tempfile()
+res.dgst2 <- runContrast(
+    se,
+    sets,
+    design=~dex,
+    contrast="dexuntrt",
+    output.dir=output.dgst2
+) 
+```
+
+# More output options
+
+As shown above, we can set `save.results=FALSE` to instruct the various pipelines to not write results to disk.
+This is more efficient if we only want the results in the current R session.
+
+Setting `dry.run=TRUE` will instruct each pipeline function to only generate the Rmarkdown report but not evaluate it.
+This can be helpful if further modifications to the report are intended.
+
+```{r}
+output.dry <- tempfile()
+runPrecomputed(
+    res.de$results[[1]],
+    sets,
+    output.dir=output.dry,
+    dry.run=TRUE
+)
+list.files(output.dry)
+```
+
+The generated report is not quite self-contained as `runPrecomputed()` doesn't know how the result table was constructed.
+In the absence of this information, the report contains a placeholder `stop()` to remind the user to insert the relevant commands:
+
+```{r, echo=FALSE}
+fname <- file.path(output.dry, "report.Rmd")
+lines <- readLines(fname)
+has.stop <- grep("stop(", lines, fixed=TRUE)[1]
+cat(lines[has.stop + (-5):5], sep="\n")
+```
+
+If we know how the object was generated, we can pass this information to `runPrecomputed()`:
+
+```{r}
+runPrecomputed(
+    wrapInput(res.de$results[[1]], commands=sprintf(
+        # Pulling the result out of the directory saved by runVoom().
+        "augere.core::readResult(%s)$x", deparse(file.path(output.de, "results", "de-1"))
+    )),
+    wrapInput(sets, commands="
+library(org.Hs.eg.db)
+sets <- select(org.Hs.eg.db, keys=keys(org.Hs.eg.db, 'GO'), keytype='GO', columns='ENSEMBL')
+sets <- split(sets$ENSEMBL, sets$GO)
+head(sets, 100)"), 
+    output.dir=output.dry,
+    dry.run=TRUE
+)
+```
+
+This allows `runPrecomputed()` to insert the relevant commands into the report for full reproducibility:
+
+```{r, echo=FALSE}
+fname <- file.path(output.dry, "report.Rmd")
+lines <- readLines(fname)
+has.loader <- grep("readResult", lines, fixed=TRUE)[1]
+cat(lines[has.loader + (-5):5], sep="\n")
+```
+
+We can also attach gene set-specific annotation to the result tables,
+if the sets are represented as `S4Vectors::List` objects with annotations in their `mcols()`.
+
+```{r, fig.show="hide"}
+library(GO.db)
+annotated.sets <- List(sets)
+mcols(annotated.sets)$name <- mapIds(
+    GO.db,
+    keys=names(annotated.sets),
+    keytype="GOID",
+    column="TERM"
+)
+
+output.anno.dir <- tempfile()
+res.anno <- runPrecomputed(
+    res.de$results[[1]],
+    annotated.sets,
+    save.results=FALSE,
+    annotation="name",
+    output.dir=output.anno.dir
+)
+
+# The desired columns of the 'mcols' are now included: 
+res.anno$hypergeometric
+```
+
+# Session information {-}
+
+```{r}
+sessionInfo()
+```
