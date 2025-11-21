@@ -63,8 +63,6 @@ test_that("generateHypergeometricTestCommands works with other alternative hypot
         C=911:930
     )
 
-    expect_error(augere.gsea:::.generateHypergeometricTestCommands(sets.name="FOO", is.sig.name="BAR", sign.name=NULL, alternative="up"), "'sign'")
-
     # Set A is only up, set B is only down, set C is 50:50.
     # Only the first half is significant.
     signs <- rep(c(-1, 1), length.out=ngenes)

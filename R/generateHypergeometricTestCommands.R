@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-.generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name, alternative=c("mixed", "up", "down", "either")) {
+.generateHypergeometricTestCommands <- function(sets.name, is.sig.name, sign.name, alternative = "mixed") {
     template <- "local({
     # Simple implementation of the hypergeometric test.
     run_hypergeometric_test <- function(sets, is.sig) {
@@ -48,11 +48,6 @@
 })"
 
     parsed <- parseRmdTemplate(template)
-
-    alternative <- match.arg(alternative)
-    if (alternative != "mixed" && is.null(sign.name)) {
-        stop("'sign' should be supplied when 'alternative=\"", alternative, "\"")
-    }
 
     if (alternative == "up") {
         parsed$down <- NULL

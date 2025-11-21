@@ -54,12 +54,33 @@ test_that("runPrecomputed works with the various sign options", {
         expect_equal(stats[[meth]], abs.stats[[meth]])
     }
 
-    # Adding some signedness.
+    # With some square rooting.
     out2 <- tempfile()
     tab2$F <- tab2$t^2
     sqrt.stats <- runPrecomputed(tab2, sets, methods=all.methods, rank.field="F", sign.field="LogFC", rank.sqrt=TRUE, output.dir=out2, save.results=FALSE, seed=42)
     for (meth in all.methods) {
         expect_equal(stats[[meth]], sqrt.stats[[meth]])
+    }
+})
+
+test_that("runPrecomputed works with different alternatives", {
+    out2 <- tempfile()
+    expect_error(runPrecomputed(tab, sets, alternative="up", output.dir=out2, save.results=FALSE, seed=42), "'sign.field' should be supplied")
+
+    out2 <- tempfile()
+    rank.only <- runPrecomputed(tab, sets, alternative="up", methods=c("fgsea", "cameraPR"), output.dir=out2, seed=42)
+    expect_identical(names(rank.only), c("fgsea", "cameraPR"))
+    for (n in names(rank.only)) {
+        res <- augere.core::readResult(file.path(out2, "results", n))
+        expect_identical(res$metadata$precomputed_gene_set_enrichment$alternative, "up")
+    }
+
+    out2 <- tempfile()
+    hyp.only <- runPrecomputed(tab, sets, alternative="down", sign.field="t", methods=c("hypergeometric", "goseq"), output.dir=out2, seed=42)
+    expect_identical(names(hyp.only), c("hypergeometric", "goseq"))
+    for (n in names(hyp.only)) {
+        res <- augere.core::readResult(file.path(out2, "results", n))
+        expect_identical(res$metadata$precomputed_gene_set_enrichment$alternative, "down")
     }
 })
 

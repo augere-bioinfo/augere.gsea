@@ -70,8 +70,6 @@ test_that("generateGoseqCommands works with other alternative hypotheses", {
     )
     bias <- 2^rexp(ngenes)
 
-    expect_error(augere.gsea:::.generateGoseqCommands(sets.name="FOO", is.sig.name="BAR", bias.name="STUFF", sign.name=NULL, alternative="up"), "'sign'")
-
     # Set A is only up, set B is only down, set C is 50:50.
     # Only the first half is significant.
     signs <- rep(c(-1, 1), length.out=ngenes)

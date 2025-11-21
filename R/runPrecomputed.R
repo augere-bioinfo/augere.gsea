@@ -237,6 +237,12 @@ runPrecomputed <- function(
         y
     }
 
+    if ("hypergeometric" %in% methods || "goseq" %in% methods) {
+        if (alternative != "mixed" && is.null(sign.field)) {
+            stop("'sign.field' should be supplied when 'alternative=\"", alternative, "\"")
+        }
+    }
+
     if ("hypergeometric" %in% methods) {
         replacements$HYPER_CMDS <- paste(.generateHypergeometricTestCommands("indices", "is.sig", "sign.stat", alternative=alternative), collapse="\n")
         parsed$hypergeometric <- process_common(parsed$hypergeometric)

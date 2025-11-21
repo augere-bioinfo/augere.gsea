@@ -1,7 +1,7 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-.generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, alternative=c("mixed", "up", "down", "either"), args=list()) {
+.generateGoseqCommands <- function(sets.name, is.sig.name, sign.name, bias.name, alternative = "mixed", args = list()) {
     template <- "local({
     sets <- <%= SETS %>
     is.sig <- <%= IS_SIG %>
@@ -70,11 +70,6 @@
 })"
 
     parsed <- parseRmdTemplate(template)
-
-    alternative <- match.arg(alternative)
-    if (alternative != "mixed" && is.null(sign.name)) {
-        stop("'sign' should be supplied when 'alternative=\"", alternative, "\"")
-    }
 
     if (alternative == "up") {
         parsed$down <- NULL
