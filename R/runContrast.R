@@ -174,10 +174,12 @@ runContrast <- function(
     replacements$CONTRAST_NAME <- deparse(contrast.info[[1]]$title)
 
     # Now fitting the linear model and EB shrinking.
+    lm.args <- character(0)
     if (!is.null(dc.block)) {
         parsed[["voom"]] <- NULL
         replacements$DUPCOR_BLOCK <- deparseToString(dc.block)
-        replacements$LM_OPTS <- ", block=dc.block, correlation=dc$consensus.correlation"
+        lm.args <- c("block=dc.block", "correlation=dc$consensus.correlation")
+        replacements$LM_OPTS <- paste(c("", lm.args), collapse=", ")
     } else {
         parsed[["duplicate-correlation"]] <- NULL
         replacements$LM_OPTS <- ""
@@ -190,7 +192,7 @@ runContrast <- function(
         parsed[["quality-text"]] <- NULL
     }
 
-    eb.args <- ""
+    eb.args <- character(0)
     if (trend) {
         eb.args <- c(eb.args, "trend=TRUE")
     }
@@ -202,7 +204,7 @@ runContrast <- function(
         replacements$EXTRA_EB_CAPT <- ""
         parsed[["robust-text"]] <- NULL
     }
-    replacements$EB_OPTS <- paste(eb.args, collapse=", ")
+    replacements$EB_OPTS <- paste(c("", eb.args), collapse=", ")
 
     # Setting up some of the outputs.
     if (!is.null(annotation)) {
@@ -250,16 +252,7 @@ runContrast <- function(
 
     if ("mroast" %in% methods || "fry" %in% methods) {
         # No need to include weights as they are picked up by getEAWP in limma::.lmEffects.
-        extra.args <- character(0)
-        if (trend) {
-            extra.args <- c(extra.args, "trend=TRUE")
-        }
-        if (!is.null(dc.block)) {
-            extra.args <- c(extra.args, "block=dc.block", "correlation=dc$consensus")
-        }
-        if (robust) {
-            extra.args <- c(extra.args, "robust=TRUE")
-        }
+        extra.args <- c(eb.args, lm.args)
         extra.arg.string <- .stringify_extra_args(extra.args)
 
         if ("mroast" %in% methods) {
