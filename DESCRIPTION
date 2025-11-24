@@ -11,6 +11,7 @@ Imports:
     stats,
     limma,
     S4Vectors,
+    IRanges,
     augere.core,
     augere.de
 Suggests:

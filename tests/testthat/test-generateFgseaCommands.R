@@ -10,7 +10,7 @@ test_that("generateFgseaCommands works as expected", {
         C=200:300
     )
 
-    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=69)
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=69, leading.edge=FALSE)
 
     env <- new.env()
     env$FOO <- sets
@@ -79,17 +79,17 @@ test_that("generateFgseaCommands works with other alternative hypotheses", {
     env$BAR[451:460] <- -1
     env$BAR[911:920] <- rep(c(1, -1), length.out=10)
 
-    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="up", seed=40)
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", leading.edge=FALSE, alternative="up", seed=40)
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_lt(result$PValue[1], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[2])
 
-    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="down", seed=41)
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", leading.edge=FALSE, alternative="down", seed=41)
     suppressWarnings(result <- eval(parse(text=cmds), envir=env))
     expect_lt(result$PValue[2], result$PValue[3])
     expect_lt(result$PValue[3], result$PValue[1])
 
-    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="either", seed=42)
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", leading.edge=FALSE, alternative="either", seed=42)
     suppressWarnings(either.result <- eval(parse(text=cmds), envir=env))
     expect_equal(either.result$Direction[1], "up")
     expect_equal(either.result$Direction[2], "down")
@@ -97,7 +97,7 @@ test_that("generateFgseaCommands works with other alternative hypotheses", {
     expect_lt(either.result$PValue[2], either.result$PValue[3])
 
     # Mixed should give us lower p-values than 'either' for the third set where the signs are mixed.
-    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", alternative="mixed", seed=42)
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", leading.edge=FALSE, alternative="mixed", seed=42)
     suppressWarnings(mixed.result <- eval(parse(text=cmds), envir=env))
     expect_lt(mixed.result$PValue[3], either.result$PValue[3])
 })
@@ -114,7 +114,33 @@ test_that("generateFgseaCommands works with empty sets", {
     env$FOO <- sets
     env$BAR <- runif(ngenes, -1, 1)
 
-    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=66)
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=66, leading.edge=FALSE)
     result <- eval(parse(text=cmds), envir=env)
     expect_identical(which(is.na(result$PValue)), 2L)
 })
+
+test_that("generateFgseaCommands works with the leading edge", {
+    ngenes <- 1000
+    sets <- list(
+        A=100:120,
+        B=400:470,
+        C=900:930,
+        D=integer(0) # make sure the CharacterList creation can handle empty objects.
+    )
+
+    cmds <- augere.gsea:::.generateFgseaCommands(sets.name="FOO", stat.name="BAR", seed=111, leading.edge=TRUE, gene.names="WHEE")
+
+    env <- new.env()
+    env$FOO <- sets
+    env$BAR <- runif(ngenes, -1, 1)
+    env$BAR[sets$B] <- rep(c(-10, 10), length.out=length(sets$B))
+    env$WHEE <- sprintf("GENE-%s", seq_len(ngenes))
+
+    suppressWarnings(result <- eval(parse(text=cmds), envir=env))
+    expect_s4_class(result$LeadingEdge, "CharacterList")
+    for (l in seq_along(result$LeadingEdge)) {
+        leaders <- result$LeadingEdge[[l]]
+        expect_true(all(leaders %in% env$WHEE[sets[[l]]]))
+    }
+})
+

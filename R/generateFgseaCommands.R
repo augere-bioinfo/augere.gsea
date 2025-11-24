@@ -1,11 +1,13 @@
 #' @import augere.core
 #' @importFrom stats p.adjust
 #' @importFrom S4Vectors DataFrame
-.generateFgseaCommands <- function(sets.name, stat.name, seed, alternative=c("mixed", "up", "down", "either"), args=list()) {
+#' @importFrom IRanges CharacterList 
+.generateFgseaCommands <- function(sets.name, stat.name, seed, leading.edge, gene.names.name, alternative=c("mixed", "up", "down", "either"), args=list()) {
     template <- "local({
     sets <- <%= SETS %>
     stat <- <%= STAT %>
 
+    # Creating new names, just in case the existing names aren't unique.
     gene.names <- as.character(seq_along(stat))
     named.sets <- relist(gene.names[unlist(sets)], sets)
     names(stat) <- gene.names
@@ -42,6 +44,15 @@
 :BEGIN direction
     out$Direction <- ifelse(out$NES > 0, \"up\", \"down\")
 :END
+:BEGIN leading-edge
+
+    leading.genes <- <%= GENE_NAMES %>[match(unlist(raw$leadingEdge), gene.names)]
+    leading.by <- factor(rep(raw$pathway, lengths(raw$leadingEdge)), set.names)
+    leading.edge <- S4Vectors::splitAsList(leading.genes, leading.by)
+    stopifnot(identical(names(leading.edge), set.names))
+    out$LeadingEdge <- unname(leading.edge)
+:END
+
     out 
 })"
 
@@ -62,6 +73,16 @@
         if (alternative != "either") {
             parsed[["direction"]] <- NULL
         }
+    }
+
+    if (!leading.edge) {
+        # I don't think much of the concept of the "leading edge", but here it is.
+        # Honestly, if I wanted to know which genes contribute to enrichment, I'd prefer to rank all DEGs in the set and work my way down.
+        # This ensures that I won't miss important genes that are significantly DE but not included in the leading edge because they're not at the very top of the ranking.
+        # If I really needed an explicit subset, I'd just take all DE genes in the set; this is intuitive and has some statistical basis w.r.t. error control.
+        parsed[["leading-edge"]] <- NULL
+    } else {
+        replacements$GENE_NAMES <- gene.names.name
     }
 
     if (length(args)) {

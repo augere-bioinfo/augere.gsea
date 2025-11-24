@@ -63,6 +63,7 @@
 #' @param goseq.args Named list of additional arguments to pass to \code{\link[goseq]{goseq}}.
 #' @param geneSetTest.args Named list of additional arguments to pass to \code{\link[limma]{geneSetTest}}.
 #' @param cameraPR.args Named list of additional arguments to pass to \code{\link[limma]{cameraPR}}.
+#' @param fgsea.leading.edge Boolean indicating whether the \dQuote{leading edge} should be stored from \code{\link[fgsea]{fgsea}}. 
 #' @param fgsea.args Named list of additional arguments to pass to \code{\link[fgsea]{fgsea}}.
 #' @param output.dir String containing the path to an output directory in which to write the Rmarkdown file and save results.
 #' @param metadata Named list of additional metadata to store with each result.
@@ -91,6 +92,7 @@
 #' Specific methods will have additional fields:
 #' \itemize{
 #' \item For \code{"fgsea"}, \code{ES} contains the enrichment score and \code{NES} contains the normalized enrichment score.
+#' If \code{fgsea.leading.edge=TRUE}, \code{LeadingEdge} will contain a \link[IRanges]{CharacterList} with the names of genes in the \dQuote{leading edge} for each gene set.
 #' \item For \code{"goseq"} and \code{"hypergeometric"}, \code{NumSig} contains the number of significant genes in each set.
 #' (If \code{alternative} is \code{"up"} or \code{"down"}, this is filtered for significant genes of the desired sign.)
 #' }
@@ -148,6 +150,7 @@ runPrecomputed <- function(
     sign.field = NULL,
     goseq.bias = "AveExpr",
     goseq.args = list(),
+    fgsea.leading.edge = FALSE,
     fgsea.args = list(),
     geneSetTest.args = list(),
     cameraPR.args = list(),
@@ -290,7 +293,18 @@ runPrecomputed <- function(
     }
 
     if ("fgsea" %in% methods) {
-        replacements$FGSEA_CMDS <- paste(.generateFgseaCommands("indices", "rank.stat", seed=rseed(), alternative=alternative, args=fgsea.args), collapse="\n")
+        replacements$FGSEA_CMDS <- paste(
+            .generateFgseaCommands(
+                sets.name="indices",
+                stat.name="rank.stat",
+                seed=rseed(),
+                leading.edge=fgsea.leading.edge,
+                alternative=alternative,
+                gene.names.name="rownames(tab)",
+                args=fgsea.args
+            ),
+            collapse="\n"
+        )
         parsed$fgsea <- process_common(parsed$fgsea)
         save.name <- "save-fgsea"
         save.chunk.names <- c(save.chunk.names, save.name)

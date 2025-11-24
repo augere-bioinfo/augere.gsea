@@ -16,6 +16,7 @@ runPrecomputed(
   sign.field = NULL,
   goseq.bias = "AveExpr",
   goseq.args = list(),
+  fgsea.leading.edge = FALSE,
   fgsea.args = list(),
   geneSetTest.args = list(),
   cameraPR.args = list(),
@@ -98,6 +99,8 @@ Only used for \code{method="goseq"}.}
 
 \item{goseq.args}{Named list of additional arguments to pass to \code{\link[goseq]{goseq}}.}
 
+\item{fgsea.leading.edge}{Boolean indicating whether the \dQuote{leading edge} should be stored from \code{\link[fgsea]{fgsea}}.}
+
 \item{fgsea.args}{Named list of additional arguments to pass to \code{\link[fgsea]{fgsea}}.}
 
 \item{geneSetTest.args}{Named list of additional arguments to pass to \code{\link[limma]{geneSetTest}}.}
@@ -137,6 +140,7 @@ All DataFrames are guaranteed to have (at least) the following fields:
 Specific methods will have additional fields:
 \itemize{
 \item For \code{"fgsea"}, \code{ES} contains the enrichment score and \code{NES} contains the normalized enrichment score.
+If \code{fgsea.leading.edge=TRUE}, \code{LeadingEdge} will contain a \link[IRanges]{CharacterList} with the names of genes in the \dQuote{leading edge} for each gene set.
 \item For \code{"goseq"} and \code{"hypergeometric"}, \code{NumSig} contains the number of significant genes in each set.
 (If \code{alternative} is \code{"up"} or \code{"down"}, this is filtered for significant genes of the desired sign.)
 }

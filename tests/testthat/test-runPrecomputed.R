@@ -187,6 +187,29 @@ test_that("runPrecomputed works with only a subset of methods", {
     }
 })
 
+test_that("runPrecomputed records the fgsea leading edge", {
+    out <- tempfile()
+    stats <- runPrecomputed(
+        tab,
+        sets,
+        methods="fgsea",
+        fgsea.leading.edge=TRUE,
+        rank.field="t",
+        output.dir=out,
+        seed=42
+    )
+
+    expect_identical(names(stats), "fgsea")
+    expect_s4_class(stats$fgsea$LeadingEdge, "CharacterList")
+    for (l in seq_along(stats$fgsea$LeadingEdge)) {
+        leaders <- stats$fgsea$LeadingEdge[[l]]
+        expect_true(all(leaders %in% sets[[l]]))
+    }
+
+    roundtrip <- augere.core::readResult(file.path(out, "results", "fgsea"))
+    expect_identical(roundtrip$x$LeadingEdge, stats$fgsea$LeadingEdge)
+})
+
 test_that("runPrecomputed works with the different output options", {
     # No saving.
     nosave.out <- tempfile()
