@@ -73,8 +73,16 @@
 #' @param dry.run Logical scalar indicating whether a dry run should be performed,
 #' This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.
 #' @param save.results Boolean indicating whether the results should be saved to file.
-#' @param seed Integer containing the seed for random number generation.
-#' Specifically, this is used to sample seeds to insert into \code{\link{set.seed}} statements within the report.
+#'
+#' @details
+#' Some of the methods involve randomization, so for full reproducibility, users should call \code{\link{set.seed}} before running \code{runPrecomputed}.
+#'
+#' Note that, even if the user does not call \code{\link{set.seed}},
+#' \code{runPrecomputed} will automatically insert \code{\link{set.seed}} statements into the Rmarkdown report 
+#' prior to any GSEA functions that involve randomization.
+#' Each \code{set.seed} call has a hard-coded seed to ensure that future compilation of the generated report will give the same result.
+#' However, different calls to \code{runPrecomputed} will use different (randomly selected) seeds to avoid systematic biases.
+#' Thus, if full reproducibility of \code{runPrecomputed} is required, users should set the seed themselves before calling \code{runPrecomputed}.
 #'
 #' @return
 #' A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 
@@ -159,16 +167,10 @@ runPrecomputed <- function(
     author = NULL,
     output.dir = "precomputed", 
     dry.run = FALSE, 
-    save.results = TRUE, 
-    seed = NULL
+    save.results = TRUE
 ) {
     restore.cache <- resetInputCache()
     on.exit(restore.cache(), after=FALSE, add=TRUE)
-
-    if (!is.null(seed)) {
-        set.seed(seed)
-    }
-    rseed <- function() sample(.Machine$integer.max, 1)
 
     if (is.null(author)) {
         author <- Sys.info()[["user"]]
@@ -248,6 +250,7 @@ runPrecomputed <- function(
 
     methods <- match.arg(methods, c("hypergeometric", "goseq", "geneSetTest", "cameraPR", "fgsea"), several.ok=TRUE)
     save.chunk.names <- character()
+    rseed <- function() sample(.Machine$integer.max, 1)
 
     process_common <- function(y) {
         if (is.null(annotation)) {

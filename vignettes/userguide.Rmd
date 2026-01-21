@@ -65,6 +65,12 @@ This is done by calling the `runPrecomputed()` function, which performs a variet
 ```{r, fig.show="hide"}
 library(augere.gsea)
 output.gsea <- tempfile()
+
+# Set the seed just in case any of the methods require randomization.
+# runPrecomputed() also hard-codes some set.seed() calls in the generated
+# Rmarkdown report to ensure that the report's results are reproducible.
+set.seed(100000)
+
 res.gsea <- runPrecomputed(
     res.de$results[[1]],
     sets,
@@ -105,6 +111,7 @@ For example, if we are only interested in significant genes that are upregulated
 
 ```{r, fig.show="hide"}
 output.up <- tempfile()
+set.seed(100001)
 res.up <- runPrecomputed(
     res.de$results[[1]],
     sets,
@@ -126,6 +133,7 @@ the latter doesn't care about direction at all, whereas the former tests both di
 
 ```{r, fig.show="hide"}
 output.either <- tempfile()
+set.seed(100002)
 res.either <- runPrecomputed(
     res.de$results[[1]],
     sets,
@@ -150,6 +158,7 @@ res.de2 <- runEdgeR(se, group="dex", comparisons=c("trt", "untrt"), output.dir=o
 res.de2$results[[1]]
 
 output.up2 <- tempfile()
+set.seed(100003)
 res.up2 <- runPrecomputed(
     res.de2$results[[1]],
     sets,
@@ -174,6 +183,7 @@ This means that we need to supply the counts themselves along with the design an
 
 ```{r, fig.show="hide"}
 output.dgst <- tempfile()
+set.seed(200000)
 res.dgst <- runContrast(
     se,
     sets,
@@ -209,6 +219,7 @@ For example, if we want to supply a custom design matrix:
 
 ```{r, fig.show="hide"}
 output.dgst2 <- tempfile()
+set.seed(200001)
 res.dgst2 <- runContrast(
     se,
     sets,
@@ -228,6 +239,7 @@ This can be helpful if further modifications to the report are intended.
 
 ```{r}
 output.dry <- tempfile()
+set.seed(300000)
 runPrecomputed(
     res.de$results[[1]],
     sets,
@@ -253,6 +265,7 @@ cat(lines[has.stop + (-5):5], sep="\n")
 If we know how the object was generated, we can pass this information to `runPrecomputed()`:
 
 ```{r, fig.show="hide"}
+set.seed(300001)
 runPrecomputed(
     wrapInput(res.de$results[[1]], commands=sprintf(
         # Pulling the result out of the directory saved by runVoom().
@@ -294,6 +307,7 @@ mcols(annotated.sets)$name <- mapIds(
 )
 
 output.anno.dir <- tempfile()
+set.seed(300002)
 res.anno <- runPrecomputed(
     res.de$results[[1]],
     annotated.sets,

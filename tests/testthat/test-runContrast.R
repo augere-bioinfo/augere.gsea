@@ -20,11 +20,13 @@ sets <- list(
 )
 
 output.default <- tempfile()
-vanilla <- runContrast(se, sets, group="group", comparison=c("A", "C"), seed=100, output=output.default)
+set.seed(100)
+vanilla <- runContrast(se, sets, group="group", comparison=c("A", "C"), output=output.default)
 
 output.all <- tempfile()
 all.methods <- c("mroast", "fry", "camera", "romer")
-vanilla.all <- runContrast(se, sets, group="group", comparison=c("A", "C"), seed=100, save.results=FALSE, output=output.all, methods=all.methods)
+set.seed(100)
+vanilla.all <- runContrast(se, sets, group="group", comparison=c("A", "C"), save.results=FALSE, output=output.all, methods=all.methods)
 
 test_that("runContrast works as expected", {
     expect_identical(names(vanilla), c("fry", "camera"))
@@ -52,25 +54,29 @@ test_that("runContrast works as expected", {
     }
 
     output.cov <- tempfile()
-    covariates <- runContrast(se, sets, groups=NULL, comparison="age", covariate="age", seed=100, save.results=FALSE, output=output.cov)
+    set.seed(100)
+    covariates <- runContrast(se, sets, groups=NULL, comparison="age", covariate="age", save.results=FALSE, output=output.cov)
     lines.cov <- readLines(file.path(output.cov, "report.Rmd"))
     expect_true(any(grepl("filterByExpr\\(.*design=", lines.cov)))
     expect_identical(names(vanilla), names(covariates))
     expect_false(identical(vanilla, covariates))
 
     output.block <- tempfile()
-    blocked <- runContrast(se, sets, group="group", block="block", comparison=c("A", "C"), seed=100, save.results=FALSE, output=output.block)
+    set.seed(100)
+    blocked <- runContrast(se, sets, group="group", block="block", comparison=c("A", "C"), save.results=FALSE, output=output.block)
     expect_identical(names(vanilla), names(blocked))
     expect_false(identical(vanilla, blocked))
 })
 
 test_that("runContrast works with subsetting", {
     output.nosub <- tempfile()
-    nosub <- runContrast(se, sets, group="group", comparison=c("A", "C"), subset.groups=FALSE, seed=100, save.results=FALSE, output=output.nosub)
+    set.seed(100)
+    nosub <- runContrast(se, sets, group="group", comparison=c("A", "C"), subset.groups=FALSE, save.results=FALSE, output=output.nosub)
     expect_identical(names(nosub), names(vanilla))
     expect_false(identical(vanilla, nosub))
 
     output.subgroup <- tempfile()
+    set.seed(100)
     subgroup <- runContrast(
         se,
         sets,
@@ -79,7 +85,6 @@ test_that("runContrast works with subsetting", {
         subset.groups=FALSE,
         subset.factor="group",
         subset.levels=c("A", "C"),
-        seed=100,
         output=output.subgroup
     )
     expect_identical(vanilla, subgroup)
@@ -90,20 +95,23 @@ test_that("runContrast works with subsetting", {
 
 test_that("runContrast works for custom design and contrasts", {
     output.custom <- tempfile()
-    custom <- runContrast(se, sets, design=~0 + group, contrast="groupB - groupA", seed=100, save.results=FALSE, output=output.custom)
+    set.seed(100)
+    custom <- runContrast(se, sets, design=~0 + group, contrast="groupB - groupA", save.results=FALSE, output=output.custom)
 
     lines.custom <- readLines(file.path(output.custom, "report.Rmd"))
     expect_true(any(grepl("filterByExpr\\(.*design=", lines.custom)))
 
     # Comparing it to a simple setup.
     output.comp <- tempfile()
-    comp <- runContrast(se, sets, group="group", comparison=c("B", "A"), subset.group=FALSE, seed=100, save.results=FALSE, output=output.comp)
+    set.seed(100)
+    comp <- runContrast(se, sets, group="group", comparison=c("B", "A"), subset.group=FALSE, save.results=FALSE, output=output.comp)
     expect_identical(custom, comp)
 })
 
 test_that("runContrast works for duplicateCorrelation", {
     output.dupcor <- tempfile()
-    dupcor <- runContrast(se, sets, group="group", dc.block="block", comparison=c("A", "C"), seed=100, save.results=FALSE, output=output.dupcor)
+    set.seed(100)
+    dupcor <- runContrast(se, sets, group="group", dc.block="block", comparison=c("A", "C"), save.results=FALSE, output=output.dupcor)
 
     lines.dupcor <- readLines(file.path(output.dupcor, "report.Rmd"))
     expect_true(any(grepl("duplicateCorrelation\\(", lines.dupcor)))
@@ -114,7 +122,8 @@ test_that("runContrast works for duplicateCorrelation", {
 
 test_that("runContrast works with other limma-related options", {
     output.other <- tempfile()
-    other <- runContrast(se, sets, group="group", comparison=c("A", "C"), quality=FALSE, trend=TRUE, robust=FALSE, seed=100, save.results=FALSE, output=output.other)
+    set.seed(100)
+    other <- runContrast(se, sets, group="group", comparison=c("A", "C"), quality=FALSE, trend=TRUE, robust=FALSE, save.results=FALSE, output=output.other)
 
     lines.other <- readLines(file.path(output.other, "report.Rmd"))
     expect_true(any(grepl("trend=TRUE", lines.other)))
@@ -155,13 +164,13 @@ test_that("runContrast works with all or one methods", {
 
 test_that("runContrast works with disabled outputs", {
     output.disabled <- tempfile()
-    disabled <- runContrast(se, sets, group="group", comparison=c("A", "C"), seed=100, save.results=FALSE, output=output.disabled)
+    disabled <- runContrast(se, sets, group="group", comparison=c("A", "C"), save.results=FALSE, output=output.disabled)
     expect_false(file.exists(file.path(output.disabled, "results")))
     expect_true(file.exists(file.path(output.disabled, "report.Rmd")))
     expect_identical(names(disabled), names(vanilla))
 
     output.dry <- tempfile()
-    dry <- runContrast(se, sets, group="group", comparison=c("A", "C"), seed=100, dry.run=TRUE, output=output.dry)
+    dry <- runContrast(se, sets, group="group", comparison=c("A", "C"), dry.run=TRUE, output=output.dry)
     expect_null(dry)
     expect_false(file.exists(file.path(output.disabled, "results")))
     expect_true(file.exists(file.path(output.disabled, "report.Rmd")))

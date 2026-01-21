@@ -30,6 +30,16 @@
 #' This is also a competitive test that takes a different approach to accounting for correlations between genes in the same set.
 #' }
 #'
+#' @details
+#' Some of the methods involve randomization, so for full reproducibility, users should call \code{\link{set.seed}} before running \code{runContrast}.
+#'
+#' Note that, even if the user does not call \code{\link{set.seed}},
+#' \code{runContrast} will automatically insert \code{\link{set.seed}} statements into the Rmarkdown report 
+#' prior to any GSEA functions that involve randomization.
+#' Each \code{set.seed} call has a hard-coded seed to ensure that future compilation of the generated report will give the same result.
+#' However, different calls to \code{runContrast} will use different (randomly selected) seeds to avoid systematic biases.
+#' Thus, if full reproducibility of \code{runContrast} is required, users should set the seed themselves before calling \code{runContrast}.
+#'
 #' @return
 #' A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 
 #' This contains all commmands used to reproduce the analysis. 
@@ -99,8 +109,7 @@ runContrast <- function(
     output.dir = "contrast", 
     author = NULL,
     dry.run = FALSE, 
-    save.results = TRUE, 
-    seed = NULL
+    save.results = TRUE
 ) {
     restore.fun <- resetInputCache()
     on.exit(restore.fun(), after=FALSE, add=TRUE)
@@ -242,13 +251,9 @@ runContrast <- function(
     }
 
     # At last, we can get to finally running each of the methods. 
-    if (!is.null(seed)) {
-        set.seed(seed)
-    }
-    rseed <- function() sample(.Machine$integer.max, 1)
-
     methods <- match.arg(methods, c("mroast", "fry", "camera", "romer"), several.ok=TRUE) 
     save.chunk.names <- character(0)
+    rseed <- function() sample(.Machine$integer.max, 1)
 
     if ("mroast" %in% methods || "fry" %in% methods) {
         # No need to include weights as they are picked up by getEAWP in limma::.lmEffects.

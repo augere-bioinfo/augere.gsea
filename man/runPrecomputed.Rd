@@ -25,8 +25,7 @@ runPrecomputed(
   author = NULL,
   output.dir = "precomputed",
   dry.run = FALSE,
-  save.results = TRUE,
-  seed = NULL
+  save.results = TRUE
 )
 }
 \arguments{
@@ -120,9 +119,6 @@ If \code{NULL}, defaults to the current user.}
 This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.}
 
 \item{save.results}{Boolean indicating whether the results should be saved to file.}
-
-\item{seed}{Integer containing the seed for random number generation.
-Specifically, this is used to sample seeds to insert into \code{\link{set.seed}} statements within the report.}
 }
 \value{
 A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 
@@ -152,6 +148,16 @@ If \code{dry.run=FALSE}, only the report is created, and \code{NULL} is returned
 \description{
 Run gene set enrichment analyses on precomputed statistics, usually from differential expression analyses.
 This uses competitive gene set tests where the enrichment of \dQuote{interesting} genes within the set must be greater than that outside of the set.
+}
+\details{
+Some of the methods involve randomization, so for full reproducibility, users should call \code{\link{set.seed}} before running \code{runPrecomputed}.
+
+Note that, even if the user does not call \code{\link{set.seed}},
+\code{runPrecomputed} will automatically insert \code{\link{set.seed}} statements into the Rmarkdown report 
+prior to any GSEA functions that involve randomization.
+Each \code{set.seed} call has a hard-coded seed to ensure that future compilation of the generated report will give the same result.
+However, different calls to \code{runPrecomputed} will use different (randomly selected) seeds to avoid systematic biases.
+Thus, if full reproducibility of \code{runPrecomputed} is required, users should set the seed themselves before calling \code{runPrecomputed}.
 }
 \examples{
 all.genes <- sprintf("gene-\%i", seq_len(1000))
