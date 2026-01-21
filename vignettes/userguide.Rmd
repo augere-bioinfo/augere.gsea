@@ -19,13 +19,20 @@ self <- BiocStyle::Biocpkg("augere.gsea")
 
 # Overview
 
-`r self` implements **augere** pipeline functions for gene set enrichment analyses (GSEA). 
+`r self` implements [**augere**](https://github.com/augere-bioinfo) pipeline functions for gene set enrichment analyses (GSEA). 
 Each analysis pipeline creates a self-contained Rmarkdown report that documents each step in the DE analysis,
 after which it compiles the report and returns the analysis results to the user in the current R session.
 We can then inspect the report to determine exactly how the analysis was performed. 
 We can also modify the report to customize the analysis beyond the options provided by the pipeline function.
 
 # Quick start
+
+To install this package, follow the usual [instructions for Bioconductor](https://bioconductor.org/install):
+
+```r
+install.packages("BiocManager") # if not already available
+BiocManager::install("augere.gsea")
+```
 
 Let's demonstrate on a dataset derived from the `r BiocStyle::Biocpkg("airway")` package.
 First, we perform a differential expression analysis with `r BiocStyle::Biocpkg("edgeR")`:

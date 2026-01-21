@@ -5,7 +5,8 @@ Title: Automatic Generation of Gene Set Enrichment Analyses
 Description:
     Implements pipelines for generating gene set enrichment analysis reports in the augere framework.
     This includes various competitive and self-contained gene sets from a variety of Bioconductor packages.
-Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.with.keyboards@gmail.com")
+    Each pipeline function generates a self-contained Rmarkdown report with all of the steps required to reproduce the gene set enrichment analysis. 
+Authors@R: person("Aaron", "Lun", role=c("cre", "aut"), email="infinite.monkeys.with.keyboards@gmail.com", comment=c(ORCID="0000-0002-3564-4813"))
 License: MIT + file LICENSE
 Imports:
     stats,
@@ -28,3 +29,9 @@ Suggests:
 VignetteBuilder: knitr    
 RoxygenNote: 7.3.3
 Encoding: UTF-8
+URL: https://github.com/augere-bioinfo/augere.gsea
+BugReports: https://github.com/augere-bioinfo/augere.gsea/issues
+biocViews:
+    WorkflowManagement,
+    ReportWriting,
+    GeneSetEnrichment
