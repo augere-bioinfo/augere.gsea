@@ -73,6 +73,8 @@
 #' @param dry.run Logical scalar indicating whether a dry run should be performed,
 #' This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.
 #' @param save.results Boolean indicating whether the results should be saved to file.
+#' @param suppress.plots Boolean indicating whether to suppress the generation of plots.
+#' This can be set to \code{FALSE} for faster pipeline execution.
 #'
 #' @details
 #' Some of the methods involve randomization, so for full reproducibility, users should call \code{\link{set.seed}} before running \code{runPrecomputed}.
@@ -167,7 +169,8 @@ runPrecomputed <- function(
     author = NULL,
     output.dir = "precomputed", 
     dry.run = FALSE, 
-    save.results = TRUE
+    save.results = TRUE,
+    suppress.plots = FALSE
 ) {
     restore.cache <- resetInputCache()
     on.exit(restore.cache(), after=FALSE, add=TRUE)
@@ -340,6 +343,6 @@ runPrecomputed <- function(
     }
 
     env <- new.env()
-    compileReport(fname, env=env, skip.chunks=skip.chunks)
+    compileReport(fname, env=env, skip.chunks=skip.chunks, suppress.plots=suppress.plots)
     env$all.results
 }

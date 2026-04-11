@@ -23,6 +23,7 @@ sets <- list(
 all.methods <- c("hypergeometric", "goseq", "geneSetTest", "fgsea", "cameraPR")
 out <- tempfile()
 set.seed(42)
+pdf(file=NULL)
 stats <- runPrecomputed(
     tab,
     sets,
@@ -32,6 +33,7 @@ stats <- runPrecomputed(
     methods=all.methods,
     output.dir=out,
 )
+dev.off()
 
 test_that("runPrecomputed works as expected", {
     expect_identical(names(stats), all.methods)
@@ -68,6 +70,7 @@ test_that("runPrecomputed works with the various sign options", {
         rank.field="t.abs",
         sign.field="LogFC",
         output.dir=out2,
+        suppress.plots=TRUE,
         save.results=FALSE
     )
     for (meth in all.methods) {
@@ -88,6 +91,7 @@ test_that("runPrecomputed works with the various sign options", {
         sign.field="LogFC",
         rank.sqrt=TRUE,
         output.dir=out2,
+        suppress.plots=TRUE,
         save.results=FALSE
     )
     for (meth in all.methods) {
@@ -107,6 +111,7 @@ test_that("runPrecomputed works with different alternatives", {
         signif.threshold=0.05,
         rank.field="t",
         output.dir=out2,
+        suppress.plots=TRUE,
         save.results=FALSE
     ), "'sign.field' should be supplied")
 
@@ -121,7 +126,8 @@ test_that("runPrecomputed works with different alternatives", {
         sign.field="t",
         methods=all.methods,
         alternative="up", 
-        output.dir=out2
+        output.dir=out2,
+        suppress.plots=TRUE
     )
     expect_identical(names(up.only), all.methods)
     for (n in names(up.only)) {
@@ -140,7 +146,8 @@ test_that("runPrecomputed works with different alternatives", {
         sign.field="t",
         alternative="either",
         methods=all.methods,
-        output.dir=out2
+        output.dir=out2,
+        suppress.plots=TRUE
     )
     expect_identical(names(either), all.methods)
     for (n in names(either)) {
@@ -162,6 +169,7 @@ test_that("runPrecomputed works with only a subset of methods", {
         signif.field="FDR",
         signif.threshold=0.05,
         output.dir=simple.out,
+        suppress.plots=TRUE,
         save.results=FALSE
     )
     expect_identical(names(simple.stats), simple.methods)
@@ -179,6 +187,7 @@ test_that("runPrecomputed works with only a subset of methods", {
         methods=ro.methods,
         rank.field="t",
         output.dir=ro.out,
+        suppress.plots=TRUE,
         save.results=FALSE
     )
     expect_identical(names(ro.stats), ro.methods)
@@ -196,7 +205,8 @@ test_that("runPrecomputed records the fgsea leading edge", {
         methods="fgsea",
         fgsea.leading.edge=TRUE,
         rank.field="t",
-        output.dir=out
+        output.dir=out,
+        suppress.plots=TRUE
     )
 
     expect_identical(names(stats), "fgsea")
@@ -222,7 +232,8 @@ test_that("runPrecomputed works with the different output options", {
         signif.threshold=0.05,
         rank.field="t",
         save.results=FALSE,
-        output.dir=nosave.out
+        output.dir=nosave.out,
+        suppress.plots=TRUE
     )
     expect_equal(stats, nosave.stats)
     expect_true(file.exists(file.path(nosave.out, "report.Rmd")))
@@ -259,6 +270,7 @@ test_that("runPrecomputed respects some extra metadata", {
         signif.threshold=0.05,
         rank.field="t",
         output.dir=common.out,
+        suppress.plots=TRUE,
         metadata=list(foo=1, bar=TRUE)
     )
     for (meth in all.methods) {
@@ -282,6 +294,7 @@ test_that("runPrecomputed respects some extra metadata", {
         rank.field="t",
         output.dir=out,
         annotation="whee",
+        suppress.plots=TRUE,
         save.results=FALSE
     )
     for (meth in all.methods) {

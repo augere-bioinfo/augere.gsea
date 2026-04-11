@@ -102,7 +102,7 @@ resulting in slightly incorrect log-fold changes and/or spurious DE.
 `r BiocStyle::Biocpkg("edgeR")` handles this by computing effective library sizes (scaled by `norm.factors`),
 which represent the combined effect of library size differences and composition biases.
 
-```{r}
+```{r plot-norm-factors}
 barplot(y$samples$norm.factors)
 ```
 
@@ -159,7 +159,7 @@ summary(fit$df.prior)
 We examine the mean-variance relationship for the shrunk estimates.
 Ideally, there should be no trend at all as it should have been handled by the observation weights.
 
-```{r, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
+```{r plot-sa, fig.cap="Residual standard deviation (sigma) plotted against the mean log-CPM. Each point represents a gene<%= EXTRA_EB_CAPT %>."}
 limma::plotSA(fit)
 ```
 

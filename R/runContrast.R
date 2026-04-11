@@ -109,7 +109,8 @@ runContrast <- function(
     output.dir = "contrast", 
     author = NULL,
     dry.run = FALSE, 
-    save.results = TRUE
+    save.results = TRUE,
+    suppress.plots = FALSE
 ) {
     restore.fun <- resetInputCache()
     on.exit(restore.fun(), after=FALSE, add=TRUE)
@@ -354,8 +355,16 @@ runContrast <- function(
         skip.chunks <- c("save-directory", save.chunk.names)
     }
 
+    if (suppress.plots) {
+        skip.chunks <- c(
+            skip.chunks,
+            "plot-norm-factors",
+            "plot-sa"
+        )
+    }
+
     env <- new.env()
-    compileReport(fname, skip.chunks=skip.chunks, env=env)
+    compileReport(fname, skip.chunks=skip.chunks, env=env, suppress.plots=suppress.plots)
     env$all.results
 }
 

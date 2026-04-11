@@ -25,7 +25,8 @@ runPrecomputed(
   author = NULL,
   output.dir = "precomputed",
   dry.run = FALSE,
-  save.results = TRUE
+  save.results = TRUE,
+  suppress.plots = FALSE
 )
 }
 \arguments{
@@ -119,6 +120,9 @@ If \code{NULL}, defaults to the current user.}
 This generates the Rmarkdown report in \code{output.dir} but does not execute the analysis.}
 
 \item{save.results}{Boolean indicating whether the results should be saved to file.}
+
+\item{suppress.plots}{Boolean indicating whether to suppress the generation of plots.
+This can be set to \code{FALSE} for faster pipeline execution.}
 }
 \value{
 A Rmarkdown report named \code{report.Rmd} is written inside \code{output.dir}. 
